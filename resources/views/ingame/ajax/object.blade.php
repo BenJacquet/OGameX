@@ -70,6 +70,19 @@
 
                     </li>
                 @endif
+
+                @if ($dark_matter_next !== null)
+                    <li class="dark_matter_production">
+                        <strong>@lang('Dark Matter production:')</strong>
+                        <span class="value tooltip" data-value="{{ (int)$dark_matter_next }}" title="">{{ \OGame\Facades\AppUtil::formatNumber($dark_matter_next) }} / @lang('hour')
+                            @if ($dark_matter_next > $dark_matter_current)
+                                <span class="bonus" data-value="{{ (int)($dark_matter_next - $dark_matter_current) }}">
+                                    (+{{ \OGame\Facades\AppUtil::formatNumber($dark_matter_next - $dark_matter_current) }})
+                                </span>
+                            @endif
+                        </span>
+                    </li>
+                @endif
             </ul>
 
             <div class="costs">

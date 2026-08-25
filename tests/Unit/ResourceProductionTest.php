@@ -138,6 +138,71 @@ class ResourceProductionTest extends UnitTestCase
     }
 
     /**
+     * Test that Energy Technology increases Solar Satellite, Solar Plant and Fusion Reactor energy production.
+     */
+    public function testEnergyTechnologyIncreasesEnergyProduction(): void
+    {
+        // --- Solar Satellite: +2 raw energy output per satellite, per Energy Technology level ---
+        $this->createAndSetUserTechModel(['energy_technology' => 0]);
+        $this->createAndSetPlanetModel([
+            'solar_satellite' => 10,
+            'solar_satellite_percent' => 10,
+            'temp_max' => 100,
+        ]);
+        $baseSatelliteEnergy = $this->planetService->energyProduction()->get();
+
+        $this->createAndSetUserTechModel(['energy_technology' => 5]);
+        $this->createAndSetPlanetModel([
+            'solar_satellite' => 10,
+            'solar_satellite_percent' => 10,
+            'temp_max' => 100,
+        ]);
+        $boostedSatelliteEnergy = $this->planetService->energyProduction()->get();
+
+        // 10 satellites * 5 tech levels * 2 raw energy = 100 extra energy.
+        $this->assertEquals($baseSatelliteEnergy + 100, $boostedSatelliteEnergy);
+
+        // --- Solar Plant: +2% output per Energy Technology level ---
+        $this->createAndSetUserTechModel(['energy_technology' => 0]);
+        $this->createAndSetPlanetModel([
+            'solar_plant' => 15,
+            'solar_plant_percent' => 10,
+        ]);
+        $baseSolarPlantEnergy = $this->planetService->energyProduction()->get();
+
+        $this->createAndSetUserTechModel(['energy_technology' => 5]);
+        $this->createAndSetPlanetModel([
+            'solar_plant' => 15,
+            'solar_plant_percent' => 10,
+        ]);
+        $boostedSolarPlantEnergy = $this->planetService->energyProduction()->get();
+
+        $this->assertEqualsWithDelta($baseSolarPlantEnergy * 1.10, $boostedSolarPlantEnergy, 1.0);
+
+        // --- Fusion Reactor: existing energy tech term in the growth exponent is retained,
+        //     and a flat +5% output per Energy Technology level is stacked on top ---
+        $this->createAndSetUserTechModel(['energy_technology' => 0]);
+        $this->createAndSetPlanetModel([
+            'fusion_plant' => 10,
+            'fusion_plant_percent' => 10,
+            'deuterium' => 1000,
+        ]);
+        $baseFusionEnergy = $this->planetService->energyProduction()->get();
+
+        $this->createAndSetUserTechModel(['energy_technology' => 5]);
+        $this->createAndSetPlanetModel([
+            'fusion_plant' => 10,
+            'fusion_plant_percent' => 10,
+            'deuterium' => 1000,
+        ]);
+        $boostedFusionEnergy = $this->planetService->energyProduction()->get();
+
+        $expectedFusionEnergy = 30 * 10 * (1.05 + 5 * 0.01) ** 10 * (1 + 0.05 * 5);
+        $this->assertEqualsWithDelta($expectedFusionEnergy, $boostedFusionEnergy, 1.0);
+        $this->assertGreaterThan($baseFusionEnergy, $boostedFusionEnergy);
+    }
+
+    /**
      * Test Planet Position and Plasma Technology bonus application to both mine and planet position bonus
      * Note: Plasma Technology does not apply to basic income, but Planet Slot does apply to basic income
      */

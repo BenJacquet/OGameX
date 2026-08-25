@@ -19,21 +19,30 @@ return [
         'description_long' => 'Deuterium is also called heavy hydrogen. It is a stable isotope of hydrogen with a natural abundance in the oceans of colonies of approximately one atom in 6500 of hydrogen (~154 PPM). Deuterium thus accounts for approximately 0.015% (on a weight basis, 0.030%) of all. Deuterium is processed by special synthesizers which can separate the water from the Deuterium using specially designed centrifuges. The upgrade of the synthesizer allows for increasing the amount of Deuterium deposits processed. Deuterium is used when carrying out sensor phalanx scans, viewing galaxies, as fuel for ships, and performing specialized research upgrades.',
     ],
 
+    'dark_matter_factory' => [
+        'title'            => 'Dark Matter Factory',
+        'description'      => 'Dark Matter Factories condense trace Dark Matter from the surrounding space into a usable form.',
+        'description_long' => 'The Dark Matter Factory taps into the faint Dark Matter field permeating every system, condensing it into your Empire\'s Dark Matter reserve. Unlike other mines, its output is not stored on the planet itself but added directly to your account-wide Dark Matter balance. Higher levels condense proportionally more, but the facility is power-hungry: it draws significantly more energy than a comparable Deuterium Synthesizer.',
+    ],
+
     'solar_plant' => [
         'title'            => 'Solar Plant',
         'description'      => 'Solar power plants absorb energy from solar radiation. All mines need energy to operate.',
-        'description_long' => 'Gigantic solar arrays are used to generate power for the mines and the deuterium synthesizer. As the solar plant is upgraded, the surface area of the photovoltaic cells covering the planet increases, resulting in a higher energy output across the power grids of your planet.',
+        'description_long' => 'Gigantic solar arrays are used to generate power for the mines and the deuterium synthesizer. As the solar plant is upgraded, the surface area of the photovoltaic cells covering the planet increases, resulting in a higher energy output across the power grids of your planet. Each level of Energy Technology further increases the energy output of the solar plant by 2%.',
     ],
 
     'fusion_plant' => [
         'title'            => 'Fusion Reactor',
-        'description'      => 'The fusion reactor uses deuterium to produce energy.',
+        'description'      => 'The fusion reactor uses deuterium to produce energy. Energy technology increases its output and reduces its deuterium consumption.',
         'description_long' => 'In fusion power plants, hydrogen nuclei are fused into helium nuclei under enormous temperature and pressure, releasing tremendous amounts of energy. For each gram of Deuterium consumed, up to 41,32*10^-13 Joule of energy can be produced; with 1 g you are able to produce 172 MWh energy.
 
-Larger reactor complexes use more deuterium and can produce more energy per hour. The energy effect could be increased by researching energy technology.
+Larger reactor complexes use more deuterium and can produce more energy per hour. The energy effect could be increased by researching energy technology, which grants an additional 5% output per level on top of its own energy formula. Energy technology also improves the efficiency of the reactor, reducing its deuterium consumption by 3% per level.
 
 The energy production of the fusion plant is calculated like that:
-30 * [Level Fusion Plant] * (1,05 + [Level Energy Technology] * 0,01) ^ [Level Fusion Plant]',
+30 * [Level Fusion Plant] * (1,05 + [Level Energy Technology] * 0,01) ^ [Level Fusion Plant] * (1 + [Level Energy Technology] * 0,05)
+
+The deuterium consumption of the fusion plant is calculated like that:
+-10 * [Level Fusion Plant] * 1,1 ^ [Level Fusion Plant] * (1 - [Level Energy Technology] * 0,03)',
     ],
 
     'metal_store' => [
@@ -150,7 +159,7 @@ To use the Phalanx, click on any planet in the Galaxy View within your sensors r
     'energy_technology' => [
         'title'            => 'Energy Technology',
         'description'      => 'The command of different types of energy is necessary for many new technologies.',
-        'description_long' => 'As various fields of research advanced, it was discovered that the current technology of energy distribution was not sufficient enough to begin certain specialized research. With each upgrade of your Energy Technology, new research can be conducted which unlocks development of more sophisticated ships and defenses.',
+        'description_long' => 'As various fields of research advanced, it was discovered that the current technology of energy distribution was not sufficient enough to begin certain specialized research. With each upgrade of your Energy Technology, new research can be conducted which unlocks development of more sophisticated ships and defenses. Higher levels also directly boost your energy infrastructure: +2 energy per Solar Satellite, +2% Solar Plant output, and +5% Fusion Reactor output per level.',
     ],
 
     'laser_technology' => [
@@ -302,7 +311,7 @@ As soon as Impulse Drive research has reached level 17, Recyclers are refitted w
         'title'            => 'Solar Satellite',
         'description'      => 'Solar satellites are simple platforms of solar cells, located in a high, stationary orbit. They gather sunlight and transmit it to the ground station via laser.',
         'description_long' => 'Scientists discovered a method of transmitting electrical energy to the colony using specially designed satellites in a geosynchronous orbit. Solar Satellites gather solar energy and transmit it to a ground station using advanced laser technology. The efficiency of a solar satellite depends on the strength of the solar radiation it receives. In principle, energy production in orbits closer to the sun is greater than for planets in orbits distant from the sun.
-Due to their good cost/performance ratio solar satellites can solve a lot of energy problems. But beware: Solar satellites can be easily destroyed in battle.',
+Due to their good cost/performance ratio solar satellites can solve a lot of energy problems. But beware: Solar satellites can be easily destroyed in battle. Each level of Energy Technology adds a further 2 energy to the output of every solar satellite.',
     ],
 
     'crawler' => [
@@ -477,5 +486,10 @@ After a battle, there is up to a 70 % chance that failed defensive facilities ca
     'newtron' => [
         'title'       => 'NEWTRON',
         'description' => 'Reduces research time for all research that is currently in progress by <b>:duration</b>.',
+    ],
+
+    'expansion' => [
+        'title'       => 'EXPANSION',
+        'description' => 'Permanently increases this planet\'s field capacity by <b>:fields</b> fields.',
     ],
 ];

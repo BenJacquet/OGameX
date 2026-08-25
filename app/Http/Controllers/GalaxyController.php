@@ -15,6 +15,7 @@ use OGame\Models\FleetMission;
 use OGame\Models\Highscore;
 use OGame\Models\Planet;
 use OGame\Models\Planet\Coordinate;
+use OGame\Services\AllianceClassService;
 use OGame\Services\BuddyService;
 use OGame\Services\CharacterClassService;
 use OGame\Services\DebrisFieldService;
@@ -50,7 +51,7 @@ class GalaxyController extends OGameController
      * @param PlanetServiceFactory $planetServiceFactory
      * @return View
      */
-    public function index(Request $request, PlayerService $player, SettingsService $settingsService, PlanetServiceFactory $planetServiceFactory): View
+    public function index(Request $request, PlayerService $player, SettingsService $settingsService, PlanetServiceFactory $planetServiceFactory, AllianceClassService $allianceClassService): View
     {
         $this->playerService = $player;
         $this->planetServiceFactory = $planetServiceFactory;
@@ -80,6 +81,7 @@ class GalaxyController extends OGameController
             'max_galaxies' => $settingsService->numberOfGalaxies(),
             'is_in_vacation_mode' => $player->isInVacationMode(),
             'planet_relocation_cost' => (int)$settingsService->get('planet_relocation_cost', 240000),
+            'canScanSystemPhalanx' => $allianceClassService->isResearcher($player->getUser()),
         ]);
     }
 
@@ -414,9 +416,10 @@ class GalaxyController extends OGameController
 
         // Check if buddy request can be sent:
         // - Must be foreign planet (not own)
-        // - Target player must not be admin (can't send requests to admins)
+        // - Target player must not be admin or an NPC base owner
         $canBuddyRequest = $planet->getPlayer()?->getId() !== $this->playerService->getId()
-            && !$planet->getPlayer()?->isAdmin();
+            && !$planet->getPlayer()?->isAdmin()
+            && !$planet->getPlayer()?->isNpc();
 
         // Check if missile attack is possible:
         // - Must be foreign planet (not own)
@@ -470,6 +473,10 @@ class GalaxyController extends OGameController
 
         // Check if target player is admin (cannot send buddy requests or ignore admins)
         $isTargetAdmin = $player->isAdmin();
+
+        // NPC base owners ("Pirates"/"Aliens") are not real players; suppress
+        // social actions the same way admins are suppressed, below.
+        $isTargetNpc = $player->isNpc();
 
         // Get player's highscore rank
         /** @var Highscore|null $highscore */
@@ -533,14 +540,14 @@ class GalaxyController extends OGameController
                     'available' => false,
                 ],
                 'buddies' => [
-                    'available' => $isForeignPlayer && !$isTargetAdmin,
+                    'available' => $isForeignPlayer && !$isTargetAdmin && !$isTargetNpc,
                     'playerId' => $player->getId(),
                     'link' => 'javascript:void(0);',
                     'title' => __('t_buddies.ui.buddy_request_to_player'),
                     'playerName' => $player->getUsername(),
                 ],
                 'ignore' => [
-                    'available' => $isForeignPlayer && !$isTargetAdmin,
+                    'available' => $isForeignPlayer && !$isTargetAdmin && !$isTargetNpc,
                     'playerId' => $player->getId(),
                     'link' => 'javascript:void(0);',
                     'title' => __('t_buddies.ui.ignore_player_title'),
@@ -560,7 +567,7 @@ class GalaxyController extends OGameController
                     'link' => route('highscore.index', ['category' => 1, 'page' => $highscorePage]),
                 ],
                 'message' => [
-                    'available' => $isForeignPlayer && !$isTargetAdmin,
+                    'available' => $isForeignPlayer && !$isTargetAdmin && !$isTargetNpc,
                     'disabledChatBar' => false,
                     'title' => __('Write message'),
                     'link' => 'javascript:void(0);',

@@ -65,6 +65,8 @@ class DeveloperShortcutsController extends OGameController
             $user->character_class = null;
             $user->character_class_free_used = false;
             $user->character_class_changed_at = null;
+            $user->has_all_character_classes = false;
+            $user->all_character_classes_changed_at = null;
             $user->save();
             return redirect()->back()->with('success', 'Character class has been reset. You can now select a class for free.');
         } elseif ($request->has('set_mines')) {

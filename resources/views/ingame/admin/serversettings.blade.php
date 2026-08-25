@@ -24,10 +24,13 @@
                         <p class="box_highlight textCenter no_buddies">@lang('Basic settings.')</p>
 
                         <div class="group bborder" style="display: block;">
+                            <div class="fieldwrapper resetCategoryWrapper textRight">
+                                <button type="button" class="btn_blue" onclick="resetSettingsCategory(this)">@lang('Reset to defaults')</button>
+                            </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Universe name:')</label>
                                 <div class="thefield">
-                                    <input class="textInput w200" type="text" maxlength="20" value="{{ $universe_name }}" size="30" name="universe_name">
+                                    <input class="textInput w200" type="text" maxlength="20" value="{{ $universe_name }}" size="30" name="universe_name" data-default="{{ $defaults['universe_name'] }}">
                                 </div>
                             </div>
                         </div>
@@ -35,40 +38,43 @@
                         <p class="box_highlight textCenter no_buddies">@lang('You can change the server settings below. Changes will be applied immediately.')</p>
 
                         <div class="group bborder" style="display: block;">
+                            <div class="fieldwrapper resetCategoryWrapper textRight">
+                                <button type="button" class="btn_blue" onclick="resetSettingsCategory(this)">@lang('Reset to defaults')</button>
+                            </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Economy speed:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $economy_speed }}" size="2" maxlength="9" name="economy_speed">
+                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $economy_speed }}" size="2" maxlength="9" name="economy_speed" data-default="{{ $defaults['economy_speed'] }}">
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Research speed:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $research_speed }}" size="2" maxlength="9" name="research_speed">
+                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $research_speed }}" size="2" maxlength="9" name="research_speed" data-default="{{ $defaults['research_speed'] }}">
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('War fleet speed:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $fleet_speed_war }}" size="2" maxlength="9" name="fleet_speed_war">
+                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $fleet_speed_war }}" size="2" maxlength="9" name="fleet_speed_war" data-default="{{ $defaults['fleet_speed_war'] }}">
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Holding fleet speed:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $fleet_speed_holding }}" size="2" maxlength="9" name="fleet_speed_holding">
+                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $fleet_speed_holding }}" size="2" maxlength="9" name="fleet_speed_holding" data-default="{{ $defaults['fleet_speed_holding'] }}">
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Peaceful fleet speed:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $fleet_speed_peaceful }}" size="2" maxlength="9" name="fleet_speed_peaceful">
+                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $fleet_speed_peaceful }}" size="2" maxlength="9" name="fleet_speed_peaceful" data-default="{{ $defaults['fleet_speed_peaceful'] }}">
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Planet fields bonus')</label>
                                 <div class="thefield">
-                                    <select name="planet_fields_bonus" class="w130" data-value="{{ $planet_fields_bonus }}">
+                                    <select name="planet_fields_bonus" class="w130" data-value="{{ $planet_fields_bonus }}" data-default="{{ $defaults['planet_fields_bonus'] }}">
                                         <option value="0"{{ $planet_fields_bonus == 0 ? ' selected' : '' }}>+0</option>
                                         <option value="10"{{ $planet_fields_bonus == 10 ? ' selected' : '' }}>+10</option>
                                         <option value="25"{{ $planet_fields_bonus == 25 ? ' selected' : '' }}>+25</option>
@@ -81,28 +87,31 @@
                         <p class="box_highlight textCenter no_buddies">@lang('Note: basic income values below are multiplied by economy speed.')</p>
 
                         <div class="group bborder" style="display: block;">
+                            <div class="fieldwrapper resetCategoryWrapper textRight">
+                                <button type="button" class="btn_blue" onclick="resetSettingsCategory(this)">@lang('Reset to defaults')</button>
+                            </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Basic metal income per hour:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $basic_income_metal }}" size="6" name="basic_income_metal"> (= {{ \OGame\Facades\AppUtil::formatNumber($basic_income_metal * $economy_speed) }})
+                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $basic_income_metal }}" size="6" name="basic_income_metal" data-default="{{ $defaults['basic_income_metal'] }}"> (= {{ \OGame\Facades\AppUtil::formatNumber($basic_income_metal * $economy_speed) }})
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Basic crystal income per hour:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $basic_income_crystal }}" size="6" name="basic_income_crystal"> (= {{ \OGame\Facades\AppUtil::formatNumber($basic_income_crystal * $economy_speed) }})
+                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $basic_income_crystal }}" size="6" name="basic_income_crystal" data-default="{{ $defaults['basic_income_crystal'] }}"> (= {{ \OGame\Facades\AppUtil::formatNumber($basic_income_crystal * $economy_speed) }})
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Basic deuterium income per hour:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $basic_income_deuterium }}" size="6" name="basic_income_deuterium"> (= {{ \OGame\Facades\AppUtil::formatNumber($basic_income_deuterium * $economy_speed) }})
+                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $basic_income_deuterium }}" size="6" name="basic_income_deuterium" data-default="{{ $defaults['basic_income_deuterium'] }}"> (= {{ \OGame\Facades\AppUtil::formatNumber($basic_income_deuterium * $economy_speed) }})
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Basic energy income per hour:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $basic_income_energy }}" size="6" name="basic_income_energy"> (= {{ \OGame\Facades\AppUtil::formatNumber($basic_income_energy * $economy_speed) }})
+                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $basic_income_energy }}" size="6" name="basic_income_energy" data-default="{{ $defaults['basic_income_energy'] }}"> (= {{ \OGame\Facades\AppUtil::formatNumber($basic_income_energy * $economy_speed) }})
                                 </div>
                             </div>
                         </div>
@@ -110,17 +119,20 @@
                         <p class="box_highlight textCenter no_buddies">@lang('New player settings.')</p>
 
                         <div class="group bborder" style="display: block;">
+                            <div class="fieldwrapper resetCategoryWrapper textRight">
+                                <button type="button" class="btn_blue" onclick="resetSettingsCategory(this)">@lang('Reset to defaults')</button>
+                            </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Amount of planets to give to player upon registration')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $registration_planet_amount }}" size="6" name="registration_planet_amount">
+                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $registration_planet_amount }}" size="6" name="registration_planet_amount" data-default="{{ $defaults['registration_planet_amount'] }}">
                                 </div>
                             </div>
 
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Dark Matter bonus:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $dark_matter_bonus }}" size="6" name="dark_matter_bonus">
+                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $dark_matter_bonus }}" size="6" name="dark_matter_bonus" data-default="{{ $defaults['dark_matter_bonus'] }}">
                                 </div>
                             </div>
                         </div>
@@ -128,47 +140,85 @@
                         <p class="box_highlight textCenter no_buddies">@lang('Dark Matter regeneration settings.')</p>
 
                         <div class="group bborder" style="display: block;">
+                            <div class="fieldwrapper resetCategoryWrapper textRight">
+                                <button type="button" class="btn_blue" onclick="resetSettingsCategory(this)">@lang('Reset to defaults')</button>
+                            </div>
                             <div class="fieldwrapper">
                                 <div class="smallFont" style="margin-bottom: 15px; padding: 10px; background-color: #1e2328; border: 1px solid #4a5568; border-radius: 4px;">
-                                    @lang('Enable periodic Dark Matter regeneration for all players. This is disabled by default to match the official game behavior. When enabled, players will receive Dark Matter automatically at the configured interval.')
+                                    @lang('Enable continuous Dark Matter regeneration for all players. This is disabled by default to match the official game behavior. When enabled, players accrue Dark Matter continuously at a rate of "amount" per "period" seconds; the balance is settled (credited) whenever it is read or spent, so no periodic lump sum is paid out.')
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Dark Matter regeneration enabled:')</label>
                                 <div class="thefield">
                                     <square-checkbox class="square-checkbox">
-                                        <input type="checkbox" id="square-checkDarkMatterRegenEnabled" name="dark_matter_regen_enabled" value="1" {{ $dark_matter_regen_enabled ? 'checked' : '' }}>
+                                        <input type="checkbox" id="square-checkDarkMatterRegenEnabled" name="dark_matter_regen_enabled" value="1" {{ $dark_matter_regen_enabled ? 'checked' : '' }} data-default="{{ $defaults['dark_matter_regen_enabled'] }}">
                                         <label for="square-checkDarkMatterRegenEnabled"></label>
                                     </square-checkbox>
                                 </div>
                             </div>
                             <div class="fieldwrapper">
-                                <label class="styled textBeefy">@lang('Dark Matter regeneration amount:')</label>
+                                <label class="styled textBeefy">@lang('Dark Matter regeneration amount (per period):')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w100 textCenter textBeefy" value="{{ $dark_matter_regen_amount }}" size="10" name="dark_matter_regen_amount">
+                                    <input type="text" pattern="[0-9]*" class="textInput w100 textCenter textBeefy" id="darkMatterRegenAmountField" value="{{ $dark_matter_regen_amount }}" size="10" name="dark_matter_regen_amount" data-default="{{ $defaults['dark_matter_regen_amount'] }}">
                                 </div>
                             </div>
                             <div class="fieldwrapper">
-                                <label class="styled textBeefy">@lang('Dark Matter regeneration period (seconds):')</label>
+                                <label class="styled textBeefy">@lang('Dark Matter regeneration period (seconds to earn the full amount above):')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w100 textCenter textBeefy" value="{{ $dark_matter_regen_period }}" size="10" name="dark_matter_regen_period">
+                                    <input type="text" pattern="[0-9]*" class="textInput w100 textCenter textBeefy" id="darkMatterRegenPeriodField" value="{{ $dark_matter_regen_period }}" size="10" name="dark_matter_regen_period" data-default="{{ $defaults['dark_matter_regen_period'] }}">
                                 </div>
+                            </div>
+                            <div class="fieldwrapper">
+                                <div class="smallFont" id="darkMatterRatePreview" style="padding: 10px; background-color: #1e2328; border: 1px solid #4a5568; border-radius: 4px;"></div>
                             </div>
                         </div>
 
                         <p class="box_highlight textCenter no_buddies">@lang('Planet relocation settings.')</p>
 
                         <div class="group bborder" style="display: block;">
+                            <div class="fieldwrapper resetCategoryWrapper textRight">
+                                <button type="button" class="btn_blue" onclick="resetSettingsCategory(this)">@lang('Reset to defaults')</button>
+                            </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Planet relocation cost (Dark Matter):')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w100 textCenter textBeefy" value="{{ $planet_relocation_cost }}" size="10" name="planet_relocation_cost">
+                                    <input type="text" pattern="[0-9]*" class="textInput w100 textCenter textBeefy" value="{{ $planet_relocation_cost }}" size="10" name="planet_relocation_cost" data-default="{{ $defaults['planet_relocation_cost'] }}">
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Planet relocation duration (seconds):')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w100 textCenter textBeefy" value="{{ $planet_relocation_duration }}" size="10" name="planet_relocation_duration">
+                                    <input type="text" pattern="[0-9]*" class="textInput w100 textCenter textBeefy" value="{{ $planet_relocation_duration }}" size="10" name="planet_relocation_duration" data-default="{{ $defaults['planet_relocation_duration'] }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="box_highlight textCenter no_buddies">@lang('Officer settings.')</p>
+
+                        <div class="group bborder" style="display: block;">
+                            <div class="fieldwrapper resetCategoryWrapper textRight">
+                                <button type="button" class="btn_blue" onclick="resetSettingsCategory(this)">@lang('Reset to defaults')</button>
+                            </div>
+                            <div class="fieldwrapper">
+                                <label class="styled textBeefy">@lang('Officer cost per week (Dark Matter):')</label>
+                                <div class="thefield">
+                                    <input type="text" pattern="[0-9]*" class="textInput w100 textCenter textBeefy" value="{{ $commanding_staff_cost_per_week }}" size="10" name="commanding_staff_cost_per_week" data-default="{{ $defaults['commanding_staff_cost_per_week'] }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="box_highlight textCenter no_buddies">@lang('Character class settings.')</p>
+
+                        <div class="group bborder" style="display: block;">
+                            <div class="fieldwrapper resetCategoryWrapper textRight">
+                                <button type="button" class="btn_blue" onclick="resetSettingsCategory(this)">@lang('Reset to defaults')</button>
+                            </div>
+                            <div class="fieldwrapper">
+                                <label class="styled textBeefy">@lang('All-in-One bundle cost (Dark Matter):')</label>
+                                <div class="thefield">
+                                    <input type="text" pattern="[0-9]*" class="textInput w100 textCenter textBeefy" value="{{ $all_classes_cost }}" size="10" name="all_classes_cost" data-default="{{ $defaults['all_classes_cost'] }}">
+                                    <div class="smallFont" style="margin-top: 5px;">@lang('Flat Dark Matter cost to purchase all three character classes at once (Collector + General + Discoverer)')</div>
                                 </div>
                             </div>
                         </div>
@@ -176,11 +226,21 @@
                         <p class="box_highlight textCenter no_buddies">@lang('Alliance settings.')</p>
 
                         <div class="group bborder" style="display: block;">
+                            <div class="fieldwrapper resetCategoryWrapper textRight">
+                                <button type="button" class="btn_blue" onclick="resetSettingsCategory(this)">@lang('Reset to defaults')</button>
+                            </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Alliance cooldown (days):')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $alliance_cooldown_days }}" size="2" maxlength="3" name="alliance_cooldown_days">
+                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $alliance_cooldown_days }}" size="2" maxlength="3" name="alliance_cooldown_days" data-default="{{ $defaults['alliance_cooldown_days'] }}">
                                     <div class="smallFont" style="margin-top: 5px;">@lang('Days a player must wait after leaving an alliance before joining/creating another')</div>
+                                </div>
+                            </div>
+                            <div class="fieldwrapper">
+                                <label class="styled textBeefy">@lang('Alliance class change cost (Dark Matter):')</label>
+                                <div class="thefield">
+                                    <input type="text" pattern="[0-9]*" class="textInput w100 textCenter textBeefy" value="{{ $alliance_class_change_cost }}" size="10" name="alliance_class_change_cost" data-default="{{ $defaults['alliance_class_change_cost'] }}">
+                                    <div class="smallFont" style="margin-top: 5px;">@lang('Flat Dark Matter cost to activate or change an alliance class (Warriors/Traders/Researchers)')</div>
                                 </div>
                             </div>
                         </div>
@@ -188,10 +248,13 @@
                         <p class="box_highlight textCenter no_buddies">@lang('Battle settings.')</p>
 
                         <div class="group bborder" style="display: block;">
+                            <div class="fieldwrapper resetCategoryWrapper textRight">
+                                <button type="button" class="btn_blue" onclick="resetSettingsCategory(this)">@lang('Reset to defaults')</button>
+                            </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Battle Engine:')</label>
                                 <div class="thefield">
-                                <select name="battle_engine" class="w130" data-value="{{ $battle_engine }}">
+                                <select name="battle_engine" class="w130" data-value="{{ $battle_engine }}" data-default="{{ $defaults['battle_engine'] }}">
                                     <option value="rust"{{ $battle_engine == 'rust' ? ' selected' : '' }}>Rust</option>
                                         <option value="php"{{ $battle_engine == 'php' ? ' selected' : '' }}>PHP</option>
                                     </select>
@@ -202,7 +265,7 @@
                                 <label class="styled textBeefy">@lang('Alliance Combat System:')</label>
                                 <div class="thefield">
                                     <square-checkbox class="square-checkbox">
-                                        <input type="checkbox" id="square-checkAllianceCombatSystem" name="alliance_combat_system_on" value="1" {{ $alliance_combat_system_on ? 'checked' : '' }}>
+                                        <input type="checkbox" id="square-checkAllianceCombatSystem" name="alliance_combat_system_on" value="1" {{ $alliance_combat_system_on ? 'checked' : '' }} data-default="{{ $defaults['alliance_combat_system_on'] }}">
                                         <label for="square-checkAllianceCombatSystem"></label>
                                     </square-checkbox>
                                 </div>
@@ -210,7 +273,7 @@
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Destroyed ships in debris fields:')</label>
                                 <div class="thefield">
-                                    <select name="debris_field_from_ships" class="w130" data-value="{{ $debris_field_from_ships }}">
+                                    <select name="debris_field_from_ships" class="w130" data-value="{{ $debris_field_from_ships }}" data-default="{{ $defaults['debris_field_from_ships'] }}">
                                         <option value="0"{{ $debris_field_from_ships == 0 ? ' selected' : '' }}>0%</option>
                                         <option value="30"{{ $debris_field_from_ships == 30 ? ' selected' : '' }}>30%</option>
                                         <option value="40"{{ $debris_field_from_ships == 40 ? ' selected' : '' }}>40%</option>
@@ -224,7 +287,7 @@
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Defensive structures in debris fields:')</label>
                                 <div class="thefield">
-                                    <select name="debris_field_from_defense" class="w130" data-value="{{ $debris_field_from_defense }}">
+                                    <select name="debris_field_from_defense" class="w130" data-value="{{ $debris_field_from_defense }}" data-default="{{ $defaults['debris_field_from_defense'] }}">
                                         <option value="0"{{ $debris_field_from_defense == 0 ? ' selected' : '' }}>0%</option>
                                         <option value="30"{{ $debris_field_from_defense == 30 ? ' selected' : '' }}>30%</option>
                                         <option value="40"{{ $debris_field_from_defense == 40 ? ' selected' : '' }}>40%</option>
@@ -239,7 +302,7 @@
                                 <label class="styled textBeefy">@lang('Deuterium in debris fields:')</label>
                                 <div class="thefield">
                                     <square-checkbox class="square-checkbox">
-                                        <input type="checkbox" id="square-checkBoxDeuteriumInDebris" name="debris_field_deuterium_on" value="1" {{ $debris_field_deuterium_on ? 'checked' : '' }}>
+                                        <input type="checkbox" id="square-checkBoxDeuteriumInDebris" name="debris_field_deuterium_on" value="1" {{ $debris_field_deuterium_on ? 'checked' : '' }} data-default="{{ $defaults['debris_field_deuterium_on'] }}">
                                         <label for="square-checkBoxDeuteriumInDebris"></label>
                                     </square-checkbox>
                                 </div>
@@ -247,42 +310,42 @@
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Minimum destruction for wreck fields:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w100 textCenter textBeefy" value="{{ $wreck_field_min_resources_loss }}" size="10" name="wreck_field_min_resources_loss">
+                                    <input type="text" pattern="[0-9]*" class="textInput w100 textCenter textBeefy" value="{{ $wreck_field_min_resources_loss }}" size="10" name="wreck_field_min_resources_loss" data-default="{{ $defaults['wreck_field_min_resources_loss'] }}">
                                 </div>
                                 <div class="smallFont">@lang('Minimum resource value that must be lost for wreck field formation.')</div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Minimum fleet destruction percentage:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $wreck_field_min_fleet_percentage }}" size="3" maxlength="3" name="wreck_field_min_fleet_percentage">
+                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $wreck_field_min_fleet_percentage }}" size="3" maxlength="3" name="wreck_field_min_fleet_percentage" data-default="{{ $defaults['wreck_field_min_fleet_percentage'] }}">
                                 </div>
                                 <div class="smallFont">@lang('Minimum percentage of defender fleet that must be destroyed for wreck field formation.')</div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Wreck field lifetime (hours):')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $wreck_field_lifetime_hours }}" size="3" maxlength="3" name="wreck_field_lifetime_hours">
+                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $wreck_field_lifetime_hours }}" size="3" maxlength="3" name="wreck_field_lifetime_hours" data-default="{{ $defaults['wreck_field_lifetime_hours'] }}">
                                 </div>
                                 <div class="smallFont">@lang('Hours before a wreck field expires if not repaired.')</div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Maximum repair time (hours):')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $wreck_field_repair_max_hours }}" size="3" maxlength="3" name="wreck_field_repair_max_hours">
+                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $wreck_field_repair_max_hours }}" size="3" maxlength="3" name="wreck_field_repair_max_hours" data-default="{{ $defaults['wreck_field_repair_max_hours'] }}">
                                 </div>
                                 <div class="smallFont">@lang('Maximum time for ship repairs in the Space Dock.')</div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Minimum repair time (minutes):')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $wreck_field_repair_min_minutes }}" size="3" maxlength="3" name="wreck_field_repair_min_minutes">
+                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $wreck_field_repair_min_minutes }}" size="3" maxlength="3" name="wreck_field_repair_min_minutes" data-default="{{ $defaults['wreck_field_repair_min_minutes'] }}">
                                 </div>
                                 <div class="smallFont">@lang('Minimum time before any ships can be repaired in the Space Dock.')</div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Maximum moon chance:')</label>
                                 <div class="thefield">
-                                    <select name="maximum_moon_chance" class="w130" data-value="{{ $maximum_moon_chance }}">
+                                    <select name="maximum_moon_chance" class="w130" data-value="{{ $maximum_moon_chance }}" data-default="{{ $defaults['maximum_moon_chance'] }}">
                                         <option value="0"{{ $maximum_moon_chance == 0 ? ' selected' : '' }}>0%</option>
                                         <option value="10"{{ $maximum_moon_chance == 10 ? ' selected' : '' }}>10%</option>
                                         <option value="20"{{ $maximum_moon_chance == 20 ? ' selected' : '' }}>20%</option>
@@ -300,7 +363,7 @@
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Hamill Manoeuvre Probability (1 in X chance):')</label>
                                 <div class="thefield" style="display: flex; gap: 10px; align-items: center;">
-                                    <input type="text" pattern="^[0-9]+$" placeholder="1000" class="textInput w100 textCenter textBeefy" size="6" name="hamill_probability" value="{{ $hamill_probability }}">
+                                    <input type="text" pattern="^[0-9]+$" placeholder="1000" class="textInput w100 textCenter textBeefy" size="6" name="hamill_probability" value="{{ $hamill_probability }}" data-default="{{ $defaults['hamill_probability'] }}">
                                     <span style="color: #999; font-size: 0.9em;">
                                         (Default: 1000 = 0.1% chance | Testing: 10 = 10% chance)
                                     </span>
@@ -313,6 +376,9 @@
                         <p class="box_highlight textCenter no_buddies">@lang('Expedition slots and reward multipliers.')</p>
 
                         <div class="group bborder" style="display: block;">
+                            <div class="fieldwrapper resetCategoryWrapper textRight">
+                                <button type="button" class="btn_blue" onclick="resetSettingsCategory(this)">@lang('Reset to defaults')</button>
+                            </div>
                             <div class="fieldwrapper">
                                 <div class="smallFont" style="margin-bottom: 15px; padding: 10px; background-color: #1e2328; border: 1px solid #4a5568; border-radius: 4px;">
                                     @lang('Bonus expedition slots are added to the base slots from Astrophysics research. Reward multipliers are multiplicative with economy speed and apply to the final reward amounts (1.0 = default, 2.0 = double rewards).')
@@ -321,31 +387,31 @@
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Bonus expedition slots:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $bonus_expedition_slots }}" size="2" maxlength="9" name="bonus_expedition_slots">
+                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $bonus_expedition_slots }}" size="2" maxlength="9" name="bonus_expedition_slots" data-default="{{ $defaults['bonus_expedition_slots'] }}">
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Resource reward multiplier:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_reward_multiplier_resources }}" size="6" name="expedition_reward_multiplier_resources">
+                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_reward_multiplier_resources }}" size="6" name="expedition_reward_multiplier_resources" data-default="{{ $defaults['expedition_reward_multiplier_resources'] }}">
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Ship reward multiplier:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_reward_multiplier_ships }}" size="6" name="expedition_reward_multiplier_ships">
+                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_reward_multiplier_ships }}" size="6" name="expedition_reward_multiplier_ships" data-default="{{ $defaults['expedition_reward_multiplier_ships'] }}">
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Dark Matter reward multiplier:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_reward_multiplier_dark_matter }}" size="6" name="expedition_reward_multiplier_dark_matter">
+                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_reward_multiplier_dark_matter }}" size="6" name="expedition_reward_multiplier_dark_matter" data-default="{{ $defaults['expedition_reward_multiplier_dark_matter'] }}">
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Item reward multiplier:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_reward_multiplier_items }}" size="6" name="expedition_reward_multiplier_items">
+                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_reward_multiplier_items }}" size="6" name="expedition_reward_multiplier_items" data-default="{{ $defaults['expedition_reward_multiplier_items'] }}">
                                 </div>
                             </div>
                         </div>
@@ -353,6 +419,9 @@
                         <p class="box_highlight textCenter no_buddies">@lang('Expedition outcome weights.')</p>
 
                         <div class="group bborder" style="display: block;">
+                            <div class="fieldwrapper resetCategoryWrapper textRight">
+                                <button type="button" class="btn_blue" onclick="resetSettingsCategory(this)">@lang('Reset to defaults')</button>
+                            </div>
                             <div class="fieldwrapper">
                                 <div class="smallFont" style="margin-bottom: 15px; padding: 10px; background-color: #1e2328; border: 1px solid #4a5568; border-radius: 4px;">
                                     @lang('Outcome weights determine the relative probability of each expedition result. Higher values mean more frequent occurrence. Weights are relative to each other (e.g., weight 20 is twice as likely as weight 10). Set to 0 to disable an outcome.')
@@ -367,67 +436,110 @@
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Ships weight:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_ships }}" size="6" name="expedition_weight_ships">
+                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_ships }}" size="6" name="expedition_weight_ships" data-default="{{ $defaults['expedition_weight_ships'] }}">
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Resources weight:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_resources }}" size="6" name="expedition_weight_resources">
+                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_resources }}" size="6" name="expedition_weight_resources" data-default="{{ $defaults['expedition_weight_resources'] }}">
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Delay weight:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_delay }}" size="6" name="expedition_weight_delay">
+                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_delay }}" size="6" name="expedition_weight_delay" data-default="{{ $defaults['expedition_weight_delay'] }}">
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Speedup weight:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_speedup }}" size="6" name="expedition_weight_speedup">
+                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_speedup }}" size="6" name="expedition_weight_speedup" data-default="{{ $defaults['expedition_weight_speedup'] }}">
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Nothing/Failed weight:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_nothing }}" size="6" name="expedition_weight_nothing">
+                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_nothing }}" size="6" name="expedition_weight_nothing" data-default="{{ $defaults['expedition_weight_nothing'] }}">
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Black Hole weight:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_black_hole }}" size="6" name="expedition_weight_black_hole">
+                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_black_hole }}" size="6" name="expedition_weight_black_hole" data-default="{{ $defaults['expedition_weight_black_hole'] }}">
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Pirates weight:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_pirates }}" size="6" name="expedition_weight_pirates">
+                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_pirates }}" size="6" name="expedition_weight_pirates" data-default="{{ $defaults['expedition_weight_pirates'] }}">
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Aliens weight:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_aliens }}" size="6" name="expedition_weight_aliens">
+                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_aliens }}" size="6" name="expedition_weight_aliens" data-default="{{ $defaults['expedition_weight_aliens'] }}">
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Dark Matter weight:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_dark_matter }}" size="6" name="expedition_weight_dark_matter">
+                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_dark_matter }}" size="6" name="expedition_weight_dark_matter" data-default="{{ $defaults['expedition_weight_dark_matter'] }}">
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Merchant weight:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_merchant }}" size="6" name="expedition_weight_merchant">
+                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_merchant }}" size="6" name="expedition_weight_merchant" data-default="{{ $defaults['expedition_weight_merchant'] }}">
                                 </div>
                             </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Items weight:')</label>
                                 <div class="thefield">
-                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_items }}" size="6" name="expedition_weight_items">
+                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $expedition_weight_items }}" size="6" name="expedition_weight_items" data-default="{{ $defaults['expedition_weight_items'] }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="box_highlight textCenter no_buddies">@lang('NPC base settings.')</p>
+
+                        <div class="group bborder" style="display: block;">
+                            <div class="fieldwrapper resetCategoryWrapper textRight">
+                                <button type="button" class="btn_blue" onclick="resetSettingsCategory(this)">@lang('Reset to defaults')</button>
+                            </div>
+                            <div class="fieldwrapper">
+                                <div class="smallFont" style="margin-bottom: 15px; padding: 10px; background-color: #1e2328; border: 1px solid #4a5568; border-radius: 4px;">
+                                    @lang('Persistent pirate/alien base planets that appear in the galaxy view. Their garrison strength is fixed per base (tiered by galaxy position), not scaled to the attacking player. The difficulty multiplier escalates over time via the weekly scheduled command.')
+                                </div>
+                            </div>
+                            <div class="fieldwrapper">
+                                <label class="styled textBeefy">@lang('NPC bases per galaxy:')</label>
+                                <div class="thefield">
+                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $npc_base_count_per_galaxy }}" size="6" name="npc_base_count_per_galaxy" data-default="{{ $defaults['npc_base_count_per_galaxy'] }}">
+                                </div>
+                            </div>
+                            <div class="fieldwrapper">
+                                <label class="styled textBeefy">@lang('Respawn time (hours):')</label>
+                                <div class="thefield">
+                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $npc_base_respawn_hours }}" size="6" name="npc_base_respawn_hours" data-default="{{ $defaults['npc_base_respawn_hours'] }}">
+                                </div>
+                            </div>
+                            <div class="fieldwrapper">
+                                <label class="styled textBeefy">@lang('Difficulty multiplier:')</label>
+                                <div class="thefield">
+                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $npc_base_difficulty_multiplier }}" size="6" name="npc_base_difficulty_multiplier" data-default="{{ $defaults['npc_base_difficulty_multiplier'] }}">
+                                </div>
+                            </div>
+                            <div class="fieldwrapper">
+                                <label class="styled textBeefy">@lang('Weekly escalation (%):')</label>
+                                <div class="thefield">
+                                    <input type="text" pattern="[0-9]*\.?[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $npc_base_weekly_escalation_pct }}" size="6" name="npc_base_weekly_escalation_pct" data-default="{{ $defaults['npc_base_weekly_escalation_pct'] }}">
+                                </div>
+                            </div>
+                            <div class="fieldwrapper">
+                                <label class="styled textBeefy">@lang('Garrison variance (+/-%):')</label>
+                                <div class="thefield">
+                                    <input type="text" pattern="[0-9]*" class="textInput w50 textCenter textBeefy" value="{{ $npc_base_garrison_variance_pct }}" size="6" name="npc_base_garrison_variance_pct" data-default="{{ $defaults['npc_base_garrison_variance_pct'] }}">
                                 </div>
                             </div>
                         </div>
@@ -435,11 +547,14 @@
                         <p class="box_highlight textCenter no_buddies">@lang('Highscore settings.')</p>
 
                         <div class="group bborder" style="display: block;">
+                            <div class="fieldwrapper resetCategoryWrapper textRight">
+                                <button type="button" class="btn_blue" onclick="resetSettingsCategory(this)">@lang('Reset to defaults')</button>
+                            </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Show admins in highscore:')</label>
                                 <div class="thefield">
                                     <square-checkbox class="square-checkbox">
-                                        <input type="checkbox" id="square-checkHighscoreAdminVisible" name="highscore_admin_visible" value="1" {{ $highscore_admin_visible ? 'checked' : '' }}>
+                                        <input type="checkbox" id="square-checkHighscoreAdminVisible" name="highscore_admin_visible" value="1" {{ $highscore_admin_visible ? 'checked' : '' }} data-default="{{ $defaults['highscore_admin_visible'] }}">
                                         <label for="square-checkHighscoreAdminVisible"></label>
                                     </square-checkbox>
                                 </div>
@@ -450,11 +565,14 @@
                         <p class="box_highlight textCenter no_buddies">@lang('Galaxy settings.')</p>
 
                         <div class="group bborder" style="display: block;">
+                            <div class="fieldwrapper resetCategoryWrapper textRight">
+                                <button type="button" class="btn_blue" onclick="resetSettingsCategory(this)">@lang('Reset to defaults')</button>
+                            </div>
                             <div class="fieldwrapper">
                                 <label class="styled textBeefy">@lang('Empty systems are ignored:')</label>
                                 <div class="thefield">
                                     <square-checkbox class="square-checkbox">
-                                        <input type="checkbox" id="square-checkIgnoreEmptySystems" name="ignore_empty_systems_on" value="1" {{ $ignore_empty_systems_on ? 'checked' : '' }}>
+                                        <input type="checkbox" id="square-checkIgnoreEmptySystems" name="ignore_empty_systems_on" value="1" {{ $ignore_empty_systems_on ? 'checked' : '' }} data-default="{{ $defaults['ignore_empty_systems_on'] }}">
                                         <label for="square-checkIgnoreEmptySystems"></label>
                                     </square-checkbox>
                                 </div>
@@ -463,7 +581,7 @@
                                 <label class="styled textBeefy">@lang('Inactive systems are ignored:')</label>
                                 <div class="thefield">
                                     <square-checkbox class="square-checkbox">
-                                        <input type="checkbox" id="square-checkIgnoreInactiveSystems" name="ignore_inactive_systems_on" value="1" {{ $ignore_inactive_systems_on ? 'checked' : '' }}>
+                                        <input type="checkbox" id="square-checkIgnoreInactiveSystems" name="ignore_inactive_systems_on" value="1" {{ $ignore_inactive_systems_on ? 'checked' : '' }} data-default="{{ $defaults['ignore_inactive_systems_on'] }}">
                                         <label for="square-checkIgnoreInactiveSystems"></label>
                                     </square-checkbox>
                                 </div>
@@ -471,7 +589,7 @@
                             <div class="fieldwrapper" style="margin-bottom: 50px;">
                                 <label class="styled textBeefy">@lang('Number of galaxies:')</label>
                                 <div class="thefield">
-                                    <select name="number_of_galaxies" class="w130" data-value="{{ $number_of_galaxies }}">
+                                    <select name="number_of_galaxies" class="w130" data-value="{{ $number_of_galaxies }}" data-default="{{ $defaults['number_of_galaxies'] }}">
                                         <option value="5"{{ $number_of_galaxies == 5 ? ' selected' : '' }}>5</option>
                                         <option value="6"{{ $number_of_galaxies == 6 ? ' selected' : '' }}>6</option>
                                         <option value="7"{{ $number_of_galaxies == 7 ? ' selected' : '' }}>7</option>
@@ -494,6 +612,66 @@
         <script language="javascript">
             initBBCodes();
             initOverlays();
+
+            function updateDarkMatterRatePreview() {
+                var preview = document.getElementById('darkMatterRatePreview');
+                if (!preview) {
+                    return;
+                }
+
+                var amount = parseFloat(document.getElementById('darkMatterRegenAmountField').value) || 0;
+                var period = parseFloat(document.getElementById('darkMatterRegenPeriodField').value) || 0;
+
+                if (amount <= 0 || period <= 0) {
+                    preview.textContent = '@lang('Enter an amount and period to preview the regeneration rate.')';
+                    return;
+                }
+
+                var perSecond = amount / period;
+                var perHour = perSecond * 3600;
+                var perDay = perSecond * 86400;
+
+                preview.textContent =
+                    '@lang('Rate:') ≈ ' + perSecond.toLocaleString(undefined, {maximumFractionDigits: 4}) + ' @lang('Dark Matter / second') ' +
+                    '(≈ ' + perHour.toLocaleString(undefined, {maximumFractionDigits: 2}) + ' @lang('per hour'), ' +
+                    '≈ ' + perDay.toLocaleString(undefined, {maximumFractionDigits: 0}) + ' @lang('per day') )';
+            }
+
+            (function () {
+                var amountField = document.getElementById('darkMatterRegenAmountField');
+                var periodField = document.getElementById('darkMatterRegenPeriodField');
+                if (amountField && periodField) {
+                    amountField.addEventListener('input', updateDarkMatterRatePreview);
+                    periodField.addEventListener('input', updateDarkMatterRatePreview);
+                    updateDarkMatterRatePreview();
+                }
+            })();
+
+            function resetSettingsCategory(button) {
+                var group = button.closest('.group');
+                if (!group) {
+                    return;
+                }
+
+                group.querySelectorAll('[data-default]').forEach(function (field) {
+                    var defaultValue = field.getAttribute('data-default');
+
+                    if (field.type === 'checkbox') {
+                        field.checked = defaultValue === '1';
+                        return;
+                    }
+
+                    field.value = defaultValue;
+
+                    if (field.tagName === 'SELECT' && window.jQuery) {
+                        jQuery(field).ogameDropDown('destroy').ogameDropDown();
+                    }
+                });
+
+                if (typeof updateDarkMatterRatePreview === 'function') {
+                    updateDarkMatterRatePreview();
+                }
+            }
         </script>
     </div>
 

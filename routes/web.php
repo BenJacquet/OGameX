@@ -20,6 +20,9 @@ use OGame\Http\Controllers\GalaxyController;
 use OGame\Http\Controllers\HighscoreController;
 use OGame\Http\Controllers\JumpGateController;
 use OGame\Http\Controllers\LanguageController;
+use OGame\Http\Controllers\LifeformController;
+use OGame\Http\Controllers\LifeformExplorationController;
+use OGame\Http\Controllers\LifeformResearchController;
 use OGame\Http\Controllers\MerchantController;
 use OGame\Http\Controllers\MessagesController;
 use OGame\Http\Controllers\NotesController;
@@ -94,6 +97,22 @@ Route::middleware(['auth', 'banned', 'globalgame', 'locale', 'firstlogin'])->gro
     Route::get('/ajax/facilities/destroy-rockets', [FacilitiesController::class, 'destroyRocketsOverlay'])->name('facilities.destroy-rockets-overlay');
     Route::post('/ajax/facilities/destroy-rockets', [FacilitiesController::class, 'destroyRockets'])->name('facilities.destroy-rockets');
 
+    // Lifeform
+    Route::get('/lifeform', [LifeformController::class, 'index'])->name('lifeform.index');
+    Route::get('/ajax/lifeform', [LifeformController::class, 'ajax'])->name('lifeform.ajax');
+    Route::get('/ajax/lifeform/techinfo', [LifeformController::class, 'techinfo'])->name('lifeform.techinfo');
+    Route::post('/lifeform/change-species', [LifeformController::class, 'changeLifeform'])->name('lifeform.changelifeform');
+    Route::post('/lifeform/add-buildrequest', [LifeformController::class, 'addBuildRequest'])->name('lifeform.addbuildrequest');
+    Route::post('/lifeform/cancel-buildrequest', [LifeformController::class, 'cancelBuildRequest'])->name('lifeform.cancelbuildrequest');
+    Route::get('/lifeform/research', [LifeformResearchController::class, 'index'])->name('lifeform.research.index');
+    Route::get('/ajax/lifeform/research', [LifeformResearchController::class, 'ajax'])->name('lifeform.research.ajax');
+    Route::get('/ajax/lifeform/research/techinfo', [LifeformResearchController::class, 'techinfo'])->name('lifeform.research.techinfo');
+    Route::post('/lifeform/research/add-researchrequest', [LifeformResearchController::class, 'addResearchRequest'])->name('lifeform.research.addresearchrequest');
+    Route::post('/lifeform/research/cancel-researchrequest', [LifeformResearchController::class, 'cancelResearchRequest'])->name('lifeform.research.cancelresearchrequest');
+    Route::post('/lifeform/research/reset-tier', [LifeformResearchController::class, 'resetTier'])->name('lifeform.research.resettier');
+    Route::get('/lifeform/exploration', [LifeformExplorationController::class, 'index'])->name('lifeform.exploration.index');
+    Route::post('/lifeform/exploration/explore', [LifeformExplorationController::class, 'explore'])->name('lifeform.exploration.explore');
+
     // Research
     Route::get('/research', [ResearchController::class, 'index'])->name('research.index');
     Route::get('/ajax/research', [ResearchController::class, 'ajax'])->name('research.ajax');
@@ -149,6 +168,7 @@ Route::middleware(['auth', 'banned', 'globalgame', 'locale', 'firstlogin'])->gro
 
     // Phalanx
     Route::post('/ajax/phalanx/scan', [PhalanxController::class, 'scan'])->name('phalanx.scan');
+    Route::post('/ajax/phalanx/scan-system', [PhalanxController::class, 'scanSystem'])->name('phalanx.scan-system');
 
     // Jump Gate
     Route::get('/ajax/jumpgate', [JumpGateController::class, 'index'])->name('jumpgate.index');
@@ -199,15 +219,22 @@ Route::middleware(['auth', 'banned', 'globalgame', 'locale', 'firstlogin'])->gro
     Route::post('/alliance/text/update', [AllianceController::class, 'updateAllianceText'])->name('alliance.text.update');
 
     Route::get('/premium', [PremiumController::class, 'index'])->name('premium.index');
+    Route::post('/premium/hire', [PremiumController::class, 'hire'])->name('premium.hire');
     Route::get('/shop', [ShopController::class, 'index'])->name('shop.index');
+    Route::post('/shop/buy', [ShopController::class, 'buy'])->name('shop.buy');
+    Route::post('/shop/activate', [ShopController::class, 'activate'])->name('shop.activate');
 
     // Character Class
     Route::get('/characterclass', [CharacterClassController::class, 'index'])->name('characterclass.index');
     Route::post('/characterclass/select', [CharacterClassController::class, 'selectClass'])->name('characterclass.select');
     Route::post('/characterclass/deselect', [CharacterClassController::class, 'deselectClass'])->name('characterclass.deselect');
+    Route::post('/characterclass/purchase-all', [CharacterClassController::class, 'purchaseAllClasses'])->name('characterclass.purchaseall');
+    Route::post('/characterclass/deactivate-all', [CharacterClassController::class, 'deactivateAllClasses'])->name('characterclass.deactivateall');
 
     Route::get('/options', [OptionsController::class, 'index'])->name('options.index');
     Route::post('/options', [OptionsController::class, 'save'])->name('options.save');
+    Route::get('/options/export', [OptionsController::class, 'exportData'])->name('options.export');
+    Route::post('/options/import', [OptionsController::class, 'importData'])->name('options.import');
 
     Route::get('/highscore', [HighscoreController::class, 'index'])->name('highscore.index');
     Route::post('/ajax/highscore', [HighscoreController::class, 'ajax'])->name('highscore.ajax');

@@ -11,7 +11,6 @@ const ingameScripts = [
     'resources/js/ingame/vendor/jquery.ba-bbq-1.4pre.js',
     'resources/js/ingame/vendor/jquery.colorpicker.js',
     'resources/js/ingame/jquery.js',
-    'resources/js/ingame/inventory.js',
     'resources/js/ingame/jquery-spinners.js',
     'resources/js/ingame/messages.js',
     'resources/js/ingame/tooltips.js',
@@ -114,6 +113,12 @@ function concatLegacyBundles(bundles, outDir = 'public/build') {
 }
 
 export default defineConfig({
+    build: {
+        // The legacy ingame/outgame CSS predates modern CSS syntax rules (old IE hacks,
+        // JS-style comments, etc.) and fails lightningcss's strict minifier. Skip CSS
+        // minification rather than chasing every legacy quirk.
+        cssMinify: false,
+    },
     plugins: [
         laravel({
             input: [

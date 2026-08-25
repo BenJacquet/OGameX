@@ -93,6 +93,39 @@ class BuildingObjects
         $buildingObjectsNew[] = $deuteriumSynthesizer;
         // --------------------
 
+        // --- Dark Matter Factory ---
+        $darkMatterFactory = new BuildingObject();
+        $darkMatterFactory->id = 5;
+        $darkMatterFactory->title = __('t_resources.dark_matter_factory.title');
+        $darkMatterFactory->machine_name = 'dark_matter_factory';
+        $darkMatterFactory->class_name = 'darkMatterFactory';
+        $darkMatterFactory->description = __('t_resources.dark_matter_factory.description');
+        $darkMatterFactory->description_long = __('t_resources.dark_matter_factory.description_long');
+
+        // 5x Deuterium Synthesizer's price (225, 75), same growth factor. Deuterium cost is
+        // half the crystal cost (375 / 2 = 187.5, rounded to 188).
+        $darkMatterFactory->price = new GameObjectPrice(1125, 375, 188, 0, 1.5);
+        $darkMatterFactory->valid_planet_types = [PlanetType::Planet];
+
+        // Dark Matter output has its own formula, like every other producing building, but is
+        // credited to the player's global Dark Matter balance (via DarkMatterService) instead
+        // of a per-planet resource, so it's not run through the shared bonus-stacking
+        // pipeline (Plasma Technology, Geologist, Crawlers, officers, Character Class).
+        // Only energy consumption goes through the normal production pipeline, so this
+        // building competes for planet power like any other.
+        $darkMatterFactory->production = new GameObjectProduction();
+        $darkMatterFactory->production->dark_matter_formula = fn (GameObjectProduction $gameObjectProduction, int $level) =>
+            1 * $level * 1.1 ** $level;
+        $darkMatterFactory->production->energy_formula = fn (GameObjectProduction $gameObjectProduction, int $level) =>
+            -40 * $level * 1.1 ** $level;
+
+        // Placeholder art reusing the Jump Gate's images until real artwork exists.
+        $darkMatterFactory->assets = new GameObjectAssets();
+        $darkMatterFactory->assets->imgMicro = 'jump_gate_micro.jpg';
+        $darkMatterFactory->assets->imgSmall = 'jump_gate_small.jpg';
+        $buildingObjectsNew[] = $darkMatterFactory;
+        // --------------------
+
         // --- Solar Plant ---
         $solarPlant = new BuildingObject();
         $solarPlant->id = 4;
@@ -107,7 +140,7 @@ class BuildingObjects
 
         $solarPlant->production = new GameObjectProduction();
         $solarPlant->production->energy_formula = fn (GameObjectProduction $gameObjectProduction, int $level) =>
-            20 * $level * 1.1 ** $level;
+            20 * $level * 1.1 ** $level * (1 + 0.02 * $gameObjectProduction->playerService->getResearchLevel('energy_technology'));
 
         $solarPlant->assets = new GameObjectAssets();
         $solarPlant->assets->imgMicro = 'solar_plant_micro.jpg';
@@ -133,9 +166,11 @@ class BuildingObjects
         ];
         $fusionReactor->production = new GameObjectProduction();
         $fusionReactor->production->deuterium_formula = fn (GameObjectProduction $gameObjectProduction, int $level) =>
-            -10 * $level * 1.1 ** $level;
+            -10 * $level * 1.1 ** $level
+            * max(0, 1 - 0.03 * $gameObjectProduction->playerService->getResearchLevel('energy_technology'));
         $fusionReactor->production->energy_formula = fn (GameObjectProduction $gameObjectProduction, int $level) =>
-            30 * $level * (1.05 + $gameObjectProduction->playerService->getResearchLevel('energy_technology') * 0.01) ** $level;
+            30 * $level * (1.05 + $gameObjectProduction->playerService->getResearchLevel('energy_technology') * 0.01) ** $level
+            * (1 + 0.05 * $gameObjectProduction->playerService->getResearchLevel('energy_technology'));
 
         $fusionReactor->assets = new GameObjectAssets();
         $fusionReactor->assets->imgMicro = 'fusion_plant_micro.jpg';

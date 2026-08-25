@@ -112,7 +112,7 @@ class SettingsService
      */
     public function fleetSpeedWar(): int
     {
-        return (int)$this->get('fleet_speed_war', 1);
+        return (int)$this->get('fleet_speed_war', 10);
     }
 
     /**
@@ -122,7 +122,7 @@ class SettingsService
      */
     public function fleetSpeedHolding(): int
     {
-        return (int)$this->get('fleet_speed_holding', 1);
+        return (int)$this->get('fleet_speed_holding', 10);
     }
 
     /**
@@ -132,7 +132,7 @@ class SettingsService
      */
     public function fleetSpeedPeaceful(): int
     {
-        return (int)$this->get('fleet_speed_peaceful', 1);
+        return (int)$this->get('fleet_speed_peaceful', 10);
     }
 
     /**
@@ -142,7 +142,7 @@ class SettingsService
      */
     public function economySpeed(): int
     {
-        return (int)$this->get('economy_speed', 1);
+        return (int)$this->get('economy_speed', 10);
     }
 
     /**
@@ -152,7 +152,7 @@ class SettingsService
      */
     public function researchSpeed(): int
     {
-        return (int)$this->get('research_speed', 1);
+        return (int)$this->get('research_speed', 10);
     }
 
     /**
@@ -213,7 +213,7 @@ class SettingsService
      */
     public function planetFieldsBonus(): int
     {
-        return (int)$this->get('planet_fields_bonus', 0);
+        return (int)$this->get('planet_fields_bonus', 30);
     }
 
     /**
@@ -255,7 +255,7 @@ class SettingsService
      */
     public function debrisFieldFromShips(): int
     {
-        return (int)$this->get('debris_field_from_ships', 30);
+        return (int)$this->get('debris_field_from_ships', 100);
     }
 
     /**
@@ -265,7 +265,7 @@ class SettingsService
      */
     public function debrisFieldFromDefense(): int
     {
-        return (int)$this->get('debris_field_from_defense', 0);
+        return (int)$this->get('debris_field_from_defense', 100);
     }
 
     /**
@@ -335,7 +335,7 @@ class SettingsService
      */
     public function maximumMoonChance(): int
     {
-        return (int)$this->get('maximum_moon_chance', 20);
+        return (int)$this->get('maximum_moon_chance', 100);
     }
 
     /**
@@ -776,5 +776,59 @@ class SettingsService
     public function contactContent(): string
     {
         return $this->get('contact_content', '');
+    }
+
+    /**
+     * Returns the target number of persistent NPC bases per galaxy.
+     *
+     * @return int
+     */
+    public function npcBaseCountPerGalaxy(): int
+    {
+        return (int)$this->get('npc_base_count_per_galaxy', 460);
+    }
+
+    /**
+     * Returns the number of hours a cleared NPC base takes to respawn.
+     *
+     * @return int
+     */
+    public function npcBaseRespawnHours(): int
+    {
+        return (int)$this->get('npc_base_respawn_hours', 24);
+    }
+
+    /**
+     * Returns the current global NPC base difficulty multiplier, applied to
+     * every base's garrison value on spawn/respawn. Escalated over time by
+     * the ogamex:scheduler:escalate-npc-base-difficulty command.
+     *
+     * @return float
+     */
+    public function npcBaseDifficultyMultiplier(): float
+    {
+        return (float)$this->get('npc_base_difficulty_multiplier', '1.0');
+    }
+
+    /**
+     * Returns the percentage by which the NPC base difficulty multiplier is
+     * increased each time the weekly escalation command runs.
+     *
+     * @return float
+     */
+    public function npcBaseWeeklyEscalationPct(): float
+    {
+        return (float)$this->get('npc_base_weekly_escalation_pct', '3.0');
+    }
+
+    /**
+     * Returns the random variance percentage (+/-) applied to an NPC base's
+     * garrison value each time it is spawned or respawned.
+     *
+     * @return int
+     */
+    public function npcBaseGarrisonVariancePct(): int
+    {
+        return (int)$this->get('npc_base_garrison_variance_pct', 15);
     }
 }

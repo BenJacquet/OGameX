@@ -13,6 +13,7 @@ use OGame\Models\AllianceMember;
 use OGame\Models\User;
 use OGame\Services\BuddyService;
 use OGame\Services\ChatService;
+use OGame\Services\DarkMatterService;
 use OGame\Services\FleetMissionService;
 use OGame\Services\HighscoreService;
 use OGame\Services\MessageService;
@@ -41,8 +42,9 @@ class IngameMainComposer
      * @param FleetMissionService $fleetMissionService
      * @param HighscoreService $highscoreService
      * @param BuddyService $buddyService
+     * @param DarkMatterService $darkMatterService
      */
-    public function __construct(private Request $request, private PlayerService $player, private MessageService $messageService, private SettingsService $settingsService, private FleetMissionService $fleetMissionService, private HighscoreService $highscoreService, private BuddyService $buddyService, private ChatService $chatService)
+    public function __construct(private Request $request, private PlayerService $player, private MessageService $messageService, private SettingsService $settingsService, private FleetMissionService $fleetMissionService, private HighscoreService $highscoreService, private BuddyService $buddyService, private ChatService $chatService, private DarkMatterService $darkMatterService)
     {
     }
 
@@ -54,6 +56,7 @@ class IngameMainComposer
     public function compose(View $view): void
     {
         $current_planet = $this->player->planets->current();
+        $darkMatterProductionPerSecond = $this->darkMatterService->getRegenerationRatePerSecond($this->player->getUser());
         $resources = [
             'metal' => [
                 'amount' => $current_planet->metal()->get(),
@@ -96,8 +99,25 @@ class IngameMainComposer
             'darkmatter' => [
                 'amount' => $this->player->getDarkMatter(),
                 'amount_formatted' => AppUtil::formatNumber($this->player->getDarkMatter()),
+                'production_second' => $darkMatterProductionPerSecond,
+                'production_hour' => $darkMatterProductionPerSecond * 3600,
+                'production_hour_formatted' => AppUtil::formatNumber($darkMatterProductionPerSecond * 3600),
+            ],
+            'population' => [
+                'amount' => $current_planet->getLifeformPopulation(),
+                'amount_formatted' => AppUtil::formatNumber($current_planet->getLifeformPopulation()),
+                'storage' => $current_planet->getLifeformPopulationMax(),
+                'storage_formatted' => AppUtil::formatNumber($current_planet->getLifeformPopulationMax()),
+            ],
+            'food' => [
+                'amount' => $current_planet->getLifeformFood(),
+                'amount_formatted' => AppUtil::formatNumber($current_planet->getLifeformFood()),
+                'storage' => $current_planet->getLifeformFoodMax(),
+                'storage_formatted' => AppUtil::formatNumber($current_planet->getLifeformFoodMax()),
             ],
         ];
+
+        $currentPlanetLifeform = $current_planet->getLifeform();
 
         // Include body_id, which might have been set in the controller.
         $body_id = $this->request->attributes->get('body_id');
@@ -131,6 +151,7 @@ class IngameMainComposer
             'resources' => $resources,
             'currentPlayer' => $this->player,
             'currentPlanet' => $this->player->planets->current(),
+            'currentPlanetLifeform' => $currentPlanetLifeform,
             'planets' => $this->player->planets,
             'highscoreRank' => $highscoreRank,
             'settings' => $this->settingsService,

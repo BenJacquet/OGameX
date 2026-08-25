@@ -3,12 +3,14 @@
 namespace OGame\GameMissions\BattleEngine;
 
 use FFI;
+use OGame\Factories\PlanetServiceFactory;
 use OGame\GameMissions\BattleEngine\Models\AttackerFleet;
 use OGame\GameMissions\BattleEngine\Models\BattleResult;
 use OGame\GameMissions\BattleEngine\Models\BattleResultRound;
 use OGame\GameMissions\BattleEngine\Models\DefenderFleet;
 use OGame\GameObjects\Models\Units\UnitCollection;
 use OGame\Services\CharacterClassService;
+use OGame\Services\LifeformService;
 use OGame\Services\ObjectService;
 use OGame\Services\PlanetService;
 use OGame\Services\SettingsService;
@@ -100,9 +102,21 @@ class RustBattleEngine extends BattleEngine
      */
     private function prepareBattleInput(BattleResult $result): array
     {
+        $lifeformService = app(LifeformService::class);
+        $planetServiceFactory = app(PlanetServiceFactory::class);
+
         // Build attacker fleets
         $attackerFleets = [];
         foreach ($this->attackers as $attackerFleet) {
+            // Resolve the origin planet once per fleet (not per unit) for the lifeform
+            // combat bonus (Mk II techs, see LifeformService::getCombatBonusMultiplier()).
+            // Fails safe to null (no bonus) if the fleet has no resolvable origin, e.g.
+            // test battles that construct an AttackerFleet without a real FleetMission.
+            $originPlanet = null;
+            if ($attackerFleet->fleetMission !== null && $attackerFleet->fleetMission->planet_id_from !== null) {
+                $originPlanet = $planetServiceFactory->make($attackerFleet->fleetMission->planet_id_from);
+            }
+
             $attackerUnits = new stdClass();
             foreach ($attackerFleet->units->units as $unit) {
                 $rapidfire = new stdClass();
@@ -111,12 +125,16 @@ class RustBattleEngine extends BattleEngine
                     $rapidfire->{$targetUnit->id} = $rapidfireObject->amount;
                 }
 
+                $lifeformMultiplier = $originPlanet !== null
+                    ? $lifeformService->getCombatBonusMultiplier($originPlanet, $attackerFleet->player, $unit->unitObject->machine_name)
+                    : 1.0;
+
                 $attackerUnits->{$unit->unitObject->id} = (object)[
                     'unit_id' => $unit->unitObject->id,
                     'amount' => $unit->amount,
-                    'shield_points' => $unit->unitObject->properties->shield->calculate($attackerFleet->player)->totalValue,
-                    'attack_power' => $unit->unitObject->properties->attack->calculate($attackerFleet->player)->totalValue,
-                    'hull_plating' => floor($unit->unitObject->properties->structural_integrity->calculate($attackerFleet->player)->totalValue / 10),
+                    'shield_points' => $unit->unitObject->properties->shield->calculate($attackerFleet->player)->totalValue * $lifeformMultiplier,
+                    'attack_power' => $unit->unitObject->properties->attack->calculate($attackerFleet->player)->totalValue * $lifeformMultiplier,
+                    'hull_plating' => floor($unit->unitObject->properties->structural_integrity->calculate($attackerFleet->player)->totalValue * $lifeformMultiplier / 10),
                     'rapidfire' => $rapidfire,
                 ];
             }
@@ -133,6 +151,9 @@ class RustBattleEngine extends BattleEngine
         if ($defenderPlayer === null) {
             throw new RuntimeException('Battle defender planet has no owner.');
         }
+        // Defenders use the defender planet's species uniformly (matches this engine's
+        // existing simplification of using a single $defenderPlayer for tech levels
+        // across all defender fleets, rather than PhpBattleEngine's per-ACS-ally levels).
         $defenderFleets = [];
         foreach ($result->defenderFleetResults as $fleetResult) {
             $defenderUnits = new stdClass();
@@ -143,12 +164,14 @@ class RustBattleEngine extends BattleEngine
                     $rapidfire->{$targetUnit->id} = $rapidfireObject->amount;
                 }
 
+                $lifeformMultiplier = $lifeformService->getCombatBonusMultiplier($this->defenderPlanet, $defenderPlayer, $unit->unitObject->machine_name);
+
                 $defenderUnits->{$unit->unitObject->id} = (object)[
                     'unit_id' => $unit->unitObject->id,
                     'amount' => $unit->amount,
-                    'shield_points' => $unit->unitObject->properties->shield->calculate($defenderPlayer)->totalValue,
-                    'attack_power' => $unit->unitObject->properties->attack->calculate($defenderPlayer)->totalValue,
-                    'hull_plating' => floor($unit->unitObject->properties->structural_integrity->calculate($defenderPlayer)->totalValue / 10),
+                    'shield_points' => $unit->unitObject->properties->shield->calculate($defenderPlayer)->totalValue * $lifeformMultiplier,
+                    'attack_power' => $unit->unitObject->properties->attack->calculate($defenderPlayer)->totalValue * $lifeformMultiplier,
+                    'hull_plating' => floor($unit->unitObject->properties->structural_integrity->calculate($defenderPlayer)->totalValue * $lifeformMultiplier / 10),
                     'rapidfire' => $rapidfire,
                 ];
             }

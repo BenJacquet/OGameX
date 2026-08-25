@@ -8,6 +8,7 @@ use OGame\GameConstants\UniverseConstants;
 use OGame\Models\Enums\PlanetType;
 use OGame\Models\Planet;
 use OGame\Models\Planet\Coordinate;
+use OGame\Services\AllianceClassService;
 use OGame\Services\CharacterClassService;
 use OGame\Services\PlanetService;
 use OGame\Services\PlayerService;
@@ -582,6 +583,11 @@ class PlanetServiceFactory
                 $characterClassService = app(CharacterClassService::class);
                 $planetSizeMultiplier = $characterClassService->getPlanetSizeBonus($player->getUser());
             }
+
+            // Apply Researcher alliance class planet size bonus (+5%), stacking multiplicatively
+            // with the character class bonus above.
+            $allianceClassService = app(AllianceClassService::class);
+            $planetSizeMultiplier *= $allianceClassService->getResearcherPlanetSizeBonus($player->getUser());
         }
 
         $planet->field_max = (int)($base_fields * $planetSizeMultiplier);
@@ -603,6 +609,7 @@ class PlanetServiceFactory
         $planet->solar_plant_percent = 10;
         $planet->fusion_plant_percent = 10;
         $planet->solar_satellite_percent = 10;
+        $planet->dark_matter_factory_percent = 10;
     }
 
     /**

@@ -31,7 +31,8 @@ class HalvingService
      * HalvingService constructor.
      */
     public function __construct(
-        private DarkMatterTransactionService $transactionService
+        private DarkMatterTransactionService $transactionService,
+        private DarkMatterService $darkMatterService
     ) {
     }
 
@@ -149,6 +150,8 @@ class HalvingService
      */
     public function halveBuilding(User $user, int $queueItemId, PlanetService $planet): array
     {
+        $this->darkMatterService->settleRegeneration($user);
+
         /** @var array{success: bool, new_time_end: int, cost: int, new_balance: int, remaining_time: int} $result */
         $result = DB::transaction(function () use ($user, $queueItemId, $planet) {
             // Lock user row for Dark Matter balance
@@ -234,6 +237,8 @@ class HalvingService
      */
     public function completeBuilding(User $user, int $queueItemId, PlanetService $planet): array
     {
+        $this->darkMatterService->settleRegeneration($user);
+
         /** @var array{success: bool, cost: int, new_balance: int} $result */
         $result = DB::transaction(function () use ($user, $queueItemId, $planet) {
             // Lock user row for Dark Matter balance
@@ -318,6 +323,8 @@ class HalvingService
      */
     public function halveResearch(User $user, int $queueItemId, PlayerService $player): array
     {
+        $this->darkMatterService->settleRegeneration($user);
+
         /** @var array{success: bool, new_time_end: int, cost: int, new_balance: int, remaining_time: int} $result */
         $result = DB::transaction(function () use ($user, $queueItemId, $player) {
             // Lock user row for Dark Matter balance
@@ -416,6 +423,8 @@ class HalvingService
      */
     public function halveUnit(User $user, int $queueItemId, PlanetService $planet): array
     {
+        $this->darkMatterService->settleRegeneration($user);
+
         /** @var array{success: bool, new_time_end: int, cost: int, new_balance: int, remaining_time: int} $result */
         $result = DB::transaction(function () use ($user, $queueItemId, $planet) {
             // Lock user row for Dark Matter balance
@@ -539,6 +548,8 @@ class HalvingService
      */
     public function completeUnit(User $user, int $queueItemId, PlanetService $planet): array
     {
+        $this->darkMatterService->settleRegeneration($user);
+
         /** @var array{success: bool, cost: int, new_balance: int} $result */
         $result = DB::transaction(function () use ($user, $queueItemId, $planet) {
             // Lock user row for Dark Matter balance
@@ -702,7 +713,7 @@ class HalvingService
      * @param int $newTimeEnd  New time_end of the modified item (after the change)
      * @return void
      */
-    private function updateFutureQueueItems(int $planetId, int $oldTimeEnd, int $newTimeEnd): void
+    public function updateFutureQueueItems(int $planetId, int $oldTimeEnd, int $newTimeEnd): void
     {
         if ($newTimeEnd >= $oldTimeEnd) {
             // Sanity check: time did not decrease, no update necessary.
@@ -729,7 +740,7 @@ class HalvingService
      * @param int $newTimeEnd  New time_end of the modified item (after the change)
      * @return void
      */
-    private function updateFutureBuildingQueueItems(int $planetId, int $oldTimeEnd, int $newTimeEnd): void
+    public function updateFutureBuildingQueueItems(int $planetId, int $oldTimeEnd, int $newTimeEnd): void
     {
         if ($newTimeEnd >= $oldTimeEnd) {
             return;

@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use OGame\Enums\CharacterClass;
 use OGame\Services\CharacterClassService;
+use OGame\Services\DarkMatterService;
 
 class CharacterClassController extends OGameController
 {
@@ -16,9 +17,11 @@ class CharacterClassController extends OGameController
      * CharacterClassController constructor.
      *
      * @param CharacterClassService $characterClassService
+     * @param DarkMatterService $darkMatterService
      */
     public function __construct(
-        private CharacterClassService $characterClassService
+        private CharacterClassService $characterClassService,
+        private DarkMatterService $darkMatterService
     ) {
     }
 
@@ -29,7 +32,7 @@ class CharacterClassController extends OGameController
      */
     public function index(): View
     {
-        $this->setBodyId('characterclassselection');
+        $this->setBodyId('characterclassselectionpage');
 
         $user = Auth::user();
         if ($user === null) {
@@ -50,7 +53,7 @@ class CharacterClassController extends OGameController
             'currentClass' => $currentClass,
             'changeCost' => $changeCost,
             'classes' => $classes,
-            'darkMatter' => $user->dark_matter,
+            'darkMatter' => $this->darkMatterService->getBalance($user),
             'isFreeSelection' => !$user->character_class_free_used,
         ]);
     }
@@ -131,6 +134,87 @@ class CharacterClassController extends OGameController
             return response()->json([
                 'status' => 'success',
                 'message' => 'Character class deactivated successfully',
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
+
+    /**
+     * Purchase the all-classes bundle
+     *
+     * @return JsonResponse
+     */
+    public function purchaseAllClasses(): JsonResponse
+    {
+        $user = Auth::user();
+        if ($user === null) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Not authenticated',
+            ], 401);
+        }
+
+        try {
+            if ($this->characterClassService->hasAllClasses($user)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'All classes bundle is already active',
+                ], 400);
+            }
+
+            if (!$this->darkMatterService->canAfford($user, $this->characterClassService->getAllClassesCost($user))) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Not enough Dark Matter to purchase all classes',
+                    'lackingDM' => true,
+                ], 400);
+            }
+
+            $this->characterClassService->purchaseAllClasses($user);
+
+            // Refresh user to ensure changes are reflected
+            $user->refresh();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'All character classes purchased successfully',
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
+
+    /**
+     * Deactivate the all-classes bundle
+     *
+     * @return JsonResponse
+     */
+    public function deactivateAllClasses(): JsonResponse
+    {
+        $user = Auth::user();
+        if ($user === null) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Not authenticated',
+            ], 401);
+        }
+
+        try {
+            $this->characterClassService->deactivateAllClasses($user);
+
+            // Refresh user to ensure changes are reflected
+            $user->refresh();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'All character classes deactivated successfully',
             ]);
         } catch (Exception $e) {
             return response()->json([

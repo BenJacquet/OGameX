@@ -83,6 +83,22 @@ class ProductionIndex
      */
     public Resources $crawler;
 
+    /**
+     * Alliance class bonus amount
+     * - Trader: +5% mines, +5% energy
+     *
+     * @var Resources
+     */
+    public Resources $alliance_class;
+
+    /**
+     * Lifeform bonus amount
+     * - combined building + research + experience bonus, amplified by Metropolis
+     *
+     * @var Resources
+     */
+    public Resources $lifeform;
+
     public function __construct()
     {
         $this->basic = new Resources();
@@ -96,6 +112,8 @@ class ProductionIndex
         $this->items = new Resources();
         $this->character_class = new Resources();
         $this->crawler = new Resources();
+        $this->alliance_class = new Resources();
+        $this->lifeform = new Resources();
     }
 
     /**
@@ -117,5 +135,7 @@ class ProductionIndex
         $this->items->add($productionIndex->items);
         $this->character_class->add($productionIndex->character_class);
         $this->crawler->add($productionIndex->crawler);
+        $this->alliance_class->add($productionIndex->alliance_class);
+        $this->lifeform->add($productionIndex->lifeform);
     }
 }

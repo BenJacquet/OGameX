@@ -7,6 +7,7 @@ use OGame\GameObjects\Models\Enums\GameObjectType;
 use OGame\GameObjects\Models\Fields\GameObjectPropertyDetails;
 use OGame\GameObjects\Models\Fields\GameObjectSpeedUpgrade;
 use OGame\GameObjects\Services\Properties\Abstracts\ObjectPropertyService;
+use OGame\Services\AllianceClassService;
 use OGame\Services\CharacterClassService;
 use OGame\Services\PlayerService;
 
@@ -54,6 +55,20 @@ class SpeedPropertyService extends ObjectPropertyService
                 'type' => 'Character class bonus',
                 'value' => $classBonusValue,
                 'percentage' => $classBonus,
+            ];
+            $breakdown['totalValue'] = $totalValue;
+        }
+
+        // Apply alliance class speed bonuses (based on base speed only, not including research bonuses)
+        $allianceClassBonus = $this->getAllianceClassSpeedBonus($player);
+        if ($allianceClassBonus > 0) {
+            $allianceClassBonusValue = (($effectiveBase / 100) * $allianceClassBonus);
+            $totalValue += $allianceClassBonusValue;
+
+            $breakdown['bonuses'][] = [
+                'type' => 'Alliance class bonus',
+                'value' => $allianceClassBonusValue,
+                'percentage' => $allianceClassBonus,
             ];
             $breakdown['totalValue'] = $totalValue;
         }
@@ -183,6 +198,29 @@ class SpeedPropertyService extends ObjectPropertyService
         // General: +100% recycler speed (Recycler: 209)
         if ($object->id === 209) {
             $multiplier = $characterClassService->getRecyclerSpeedBonus($user);
+            if ($multiplier > 1.0) {
+                return (int)(($multiplier - 1.0) * 100);
+            }
+        }
+
+        return 0;
+    }
+
+    /**
+     * Get alliance class speed bonus percentage.
+     *
+     * @param PlayerService $player
+     * @return int Percentage bonus (0-100)
+     */
+    private function getAllianceClassSpeedBonus(PlayerService $player): int
+    {
+        $allianceClassService = app(AllianceClassService::class);
+        $user = $player->getUser();
+        $object = $this->parent_object;
+
+        // Trader: +10% transporter speed (Small Cargo: 202, Large Cargo: 203)
+        if ($object->id === 202 || $object->id === 203) {
+            $multiplier = $allianceClassService->getAllianceTransporterSpeedBonus($user);
             if ($multiplier > 1.0) {
                 return (int)(($multiplier - 1.0) * 100);
             }

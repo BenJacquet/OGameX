@@ -40028,11 +40028,11 @@ ResourceTicker.prototype.reload = function (data) {
   changeTooltip($("#darkmatter_box"), data.resources.darkmatter.tooltip);
   changeTooltip($("#energy_box"), data.resources.energy.tooltip);
 
-  if ($("#population_box").length) {
+  if ($("#population_box").length && data.resources.population) {
     changeTooltip($("#population_box"), data.resources.population.tooltip);
   }
 
-  if ($("#food_box").length) {
+  if ($("#food_box").length && data.resources.food) {
     changeTooltip($("#food_box"), data.resources.food.tooltip);
   }
 
@@ -40064,7 +40064,7 @@ ResourceTicker.prototype.update = function () {
     deuterium: 0
   };
 
-  if ($("#population_box").length) {
+  if ($("#population_box").length && this.resources.population && this.resources.population.growthRate !== undefined) {
     resourceProduction.population = 0;
   }
 
@@ -40155,6 +40155,12 @@ ResourceTicker.prototype.update = function () {
         this.resources[resource].amount = Math.max(newAmount, 0);
       }
     }
+  } // Dark Matter has no storage cap and regenerates continuously (lazy accrual), so it's
+  // ticked separately from the storage-bound resources above.
+
+
+  if (this.resources.darkmatter && this.resources.darkmatter.production) {
+    this.resources.darkmatter.amount = Math.max(0, this.resources.darkmatter.amount + this.resources.darkmatter.production);
   }
 
   this.refresh();
@@ -40198,12 +40204,12 @@ ResourceTicker.prototype.refresh = function () {
   } // darkmatter
 
 
-  elements.darkmatter.html(gfNumberGetHumanReadable(this.resources.darkmatter.amount, true)); // energy
+  elements.darkmatter.html(gfNumberGetHumanReadable(Math.floor(this.resources.darkmatter.amount), true)); // energy
 
   elements.energy.html(gfNumberGetHumanReadable(Math.floor(this.resources.energy.amount), true));
   elements.energy.toggleClass('overmark', this.resources.energy.amount < 0); // population
 
-  if (elements.population.length) {
+  if (elements.population.length && this.resources.population) {
     elements.population.html(gfNumberGetHumanReadable(Math.floor(this.resources.population.amount), true));
     elements.population.removeClass('overmark middlemark');
     storageClass = this.getStorageClass(this.resources.population.amount, this.resources.population.storage);
@@ -40214,7 +40220,7 @@ ResourceTicker.prototype.refresh = function () {
   } // food
 
 
-  if (elements.food.length) {
+  if (elements.food.length && this.resources.food) {
     elements.food.html(gfNumberGetHumanReadable(Math.floor(this.resources.food.amount), true));
     elements.food.removeClass('overmark middlemark');
     storageClass = this.getStorageClass(this.resources.food.amount, this.resources.food.storage);

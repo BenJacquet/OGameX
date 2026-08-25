@@ -106,11 +106,21 @@ trait ObjectAjaxTrait
 
         $production_next = [];
         $energy_difference = 0;
+        $dark_matter_current = null;
+        $dark_matter_next = null;
         if (!empty($object->production)) {
             $production_current = $planet->getObjectProduction($object->machine_name);
             $production_next = $planet->getObjectProduction($object->machine_name, $next_level);
 
             $energy_difference = ($production_next->energy->get() - $production_current->energy->get()) * -1;
+
+            // Dark Matter Factory's output isn't part of the per-planet resource system
+            // (getObjectProduction above), so it's computed separately here.
+            if ($object->machine_name === 'dark_matter_factory') {
+                $darkMatterService = resolve(\OGame\Services\DarkMatterService::class);
+                $dark_matter_current = $darkMatterService->getFactoryProductionPerHour($planet, $current_level);
+                $dark_matter_next = $darkMatterService->getFactoryProductionPerHour($planet, $next_level);
+            }
         } elseif ($object->machine_name === 'crawler') {
             // Special handling for Crawlers: they consume energy but don't have production property
             // Each crawler consumes 50 energy at 100%, with additional cost for overcharge
@@ -283,6 +293,8 @@ trait ObjectAjaxTrait
             'production_datetime' => $production_datetime,
             'production_next' => $production_next,
             'energy_difference' => $energy_difference,
+            'dark_matter_current' => $dark_matter_current,
+            'dark_matter_next' => $dark_matter_next,
             'enough_resources' => $enough_resources,
             'has_requirements' => $object->hasRequirements(),
             'requirements_met' => $requirements_met,

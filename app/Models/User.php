@@ -48,9 +48,12 @@ use Spatie\Permission\Traits\HasRoles;
  * @property int|null $character_class
  * @property bool $character_class_free_used
  * @property Carbon|null $character_class_changed_at
+ * @property bool $has_all_character_classes
+ * @property Carbon|null $all_character_classes_changed_at
  * @property-read DatabaseNotificationCollection<int, DatabaseNotification> $notifications
  * @property-read int|null $notifications_count
  * @property-read UserTech|null $tech
+ * @property-read UserOfficer|null $officers
  * @method static UserFactory factory($count = null, $state = [])
  * @method static Builder|User newModelQuery()
  * @method static Builder|User newQuery()
@@ -139,6 +142,8 @@ class User extends Authenticatable
         'dark_matter_last_regen' => 'datetime',
         'character_class_free_used' => 'boolean',
         'character_class_changed_at' => 'datetime',
+        'has_all_character_classes' => 'boolean',
+        'all_character_classes_changed_at' => 'datetime',
         'alliance_left_at' => 'datetime',
     ];
 
@@ -160,6 +165,26 @@ class User extends Authenticatable
     public function darkMatterTransactions()
     {
         return $this->hasMany(DarkMatterTransaction::class);
+    }
+
+    /**
+     * Get the officer record associated with the user.
+     *
+     * @return HasOne
+     */
+    public function officers(): HasOne
+    {
+        return $this->hasOne(UserOfficer::class);
+    }
+
+    /**
+     * Get the item records associated with the user.
+     *
+     * @return HasMany
+     */
+    public function items(): HasMany
+    {
+        return $this->hasMany(UserItem::class);
     }
 
     /**
@@ -223,7 +248,7 @@ class User extends Authenticatable
      */
     public function isCollector(): bool
     {
-        return $this->character_class === CharacterClass::COLLECTOR->value;
+        return $this->has_all_character_classes || $this->character_class === CharacterClass::COLLECTOR->value;
     }
 
     /**
@@ -233,7 +258,7 @@ class User extends Authenticatable
      */
     public function isGeneral(): bool
     {
-        return $this->character_class === CharacterClass::GENERAL->value;
+        return $this->has_all_character_classes || $this->character_class === CharacterClass::GENERAL->value;
     }
 
     /**
@@ -243,7 +268,7 @@ class User extends Authenticatable
      */
     public function isDiscoverer(): bool
     {
-        return $this->character_class === CharacterClass::DISCOVERER->value;
+        return $this->has_all_character_classes || $this->character_class === CharacterClass::DISCOVERER->value;
     }
 
     /**
@@ -254,6 +279,16 @@ class User extends Authenticatable
     public function hasCharacterClass(): bool
     {
         return $this->character_class !== null;
+    }
+
+    /**
+     * Check if user has purchased the all-classes bundle.
+     *
+     * @return bool
+     */
+    public function hasAllClasses(): bool
+    {
+        return (bool) $this->has_all_character_classes;
     }
 
     /**

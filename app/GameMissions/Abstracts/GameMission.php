@@ -300,9 +300,19 @@ abstract class GameMission
         // Time this fleet mission will depart (now).
         $time_start = (int)Date::now()->timestamp;
 
+        // Resolve the target planet/moon (if applicable) up front so its owner can be used both for
+        // duration bonuses that depend on both mission endpoints (e.g. Warrior alliance class same-alliance
+        // speed bonus) and for setting planet_id_to below.
+        $targetPlanetForMission = null;
+        if ($targetType === PlanetType::Planet) {
+            $targetPlanetForMission = $this->planetServiceFactory->makePlanetForCoordinate($targetCoordinate);
+        } elseif ($targetType === PlanetType::Moon) {
+            $targetPlanetForMission = $this->planetServiceFactory->makeMoonForCoordinate($targetCoordinate);
+        }
+
         // Time fleet mission will arrive.
         // TODO: refactor calculate to gamemission base class?
-        $time_end = $time_start + $this->fleetMissionService->calculateFleetMissionDuration($planet, $targetCoordinate, $units, $this, $speedPercent);
+        $time_end = $time_start + $this->fleetMissionService->calculateFleetMissionDuration($planet, $targetCoordinate, $units, $this, $speedPercent, $targetPlanetForMission?->getPlayer());
 
         $mission = new FleetMission();
 
@@ -351,16 +361,8 @@ abstract class GameMission
         $mission->deuterium_consumption = $consumption_resources->deuterium->get();
 
         // Only set the target planet ID if the target is a planet or moon.
-        if ($targetType === PlanetType::Planet) {
-            $targetPlanet = $this->planetServiceFactory->makePlanetForCoordinate($targetCoordinate);
-            if ($targetPlanet !== null) {
-                $mission->planet_id_to = $targetPlanet->getPlanetId();
-            }
-        } elseif ($targetType === PlanetType::Moon) {
-            $targetPlanet = $this->planetServiceFactory->makeMoonForCoordinate($targetCoordinate);
-            if ($targetPlanet !== null) {
-                $mission->planet_id_to = $targetPlanet->getPlanetId();
-            }
+        if ($targetPlanetForMission !== null) {
+            $mission->planet_id_to = $targetPlanetForMission->getPlanetId();
         }
 
         $mission->galaxy_to = $targetCoordinate->galaxy;

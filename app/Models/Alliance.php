@@ -27,6 +27,8 @@ use Illuminate\Support\Carbon;
  * @property bool $is_open
  * @property string $founder_rank_name
  * @property string $newcomer_rank_name
+ * @property int|null $alliance_class
+ * @property Carbon|null $alliance_class_changed_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read User $founder
@@ -67,6 +69,8 @@ use Illuminate\Support\Carbon;
     'is_open',
     'founder_rank_name',
     'newcomer_rank_name',
+    'alliance_class',
+    'alliance_class_changed_at',
 ])]
 class Alliance extends Model
 {
@@ -79,6 +83,7 @@ class Alliance extends Model
      */
     protected $casts = [
         'is_open' => 'boolean',
+        'alliance_class_changed_at' => 'datetime',
     ];
 
     /**

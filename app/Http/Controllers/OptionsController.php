@@ -6,8 +6,13 @@ use Exception;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
+use OGame\Exceptions\AccountImportException;
+use OGame\Services\AccountExportService;
+use OGame\Services\AccountImportService;
 use OGame\Services\PlayerService;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class OptionsController extends OGameController
 {
@@ -174,6 +179,67 @@ class OptionsController extends OGameController
         $player->save();
 
         return array('success' => __('t_ingame.options.msg_settings_saved'));
+    }
+
+    /**
+     * Download the current player's account data (empire state) as a JSON file.
+     *
+     * @param PlayerService $player
+     * @param AccountExportService $exportService
+     * @return StreamedResponse
+     */
+    public function exportData(PlayerService $player, AccountExportService $exportService): StreamedResponse
+    {
+        $data = $exportService->export($player->getUser());
+        $filename = 'ogamex-export-' . Str::slug($player->getUsername(false)) . '-' . now()->format('Y-m-d') . '.json';
+
+        return response()->streamDownload(function () use ($data) {
+            echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        }, $filename, ['Content-Type' => 'application/json']);
+    }
+
+    /**
+     * Restore a previously exported account data JSON file into the current player's account.
+     * This fully replaces the player's existing planets/queues with the imported data.
+     *
+     * @param Request $request
+     * @param PlayerService $player
+     * @param AccountImportService $importService
+     * @return RedirectResponse
+     */
+    public function importData(Request $request, PlayerService $player, AccountImportService $importService): RedirectResponse
+    {
+        if (!$request->hasFile('import_file') || !$request->file('import_file')->isValid()) {
+            return redirect()->route('options.index')->with('error', __('t_ingame.options.msg_import_invalid_file'));
+        }
+
+        $file = $request->file('import_file');
+        if ($file->getSize() > 5 * 1024 * 1024) {
+            return redirect()->route('options.index')->with('error', __('t_ingame.options.msg_import_invalid_file'));
+        }
+
+        $contents = file_get_contents($file->getRealPath());
+        $data = $contents !== false ? json_decode($contents, true) : null;
+
+        if (!is_array($data)) {
+            return redirect()->route('options.index')->with('error', __('t_ingame.options.msg_import_invalid_file'));
+        }
+
+        try {
+            $warnings = $importService->import($player->getUser(), $data);
+        } catch (AccountImportException $e) {
+            return redirect()->route('options.index')->with('error', $e->getMessage());
+        }
+
+        // Reload the player object so the rest of the app reflects the newly imported empire.
+        $player->load($player->getId());
+
+        $successMessage = __('t_ingame.options.msg_import_success');
+        if (!empty($warnings)) {
+            $successMessage .= ' ' . implode(' ', $warnings);
+        }
+
+        return redirect()->route('options.index')->with('success', $successMessage);
     }
 
     /**

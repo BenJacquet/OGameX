@@ -16,10 +16,12 @@ use OGame\GameObjects\Models\Units\UnitCollection;
 use OGame\Models\BattleReport;
 use OGame\Models\Enums\PlanetType;
 use OGame\Models\FleetMission;
+use OGame\Models\NpcBase;
 use OGame\Models\Planet\Coordinate;
 use OGame\Models\Resources;
 use OGame\Services\CharacterClassService;
 use OGame\Services\DebrisFieldService;
+use OGame\Services\NPCBaseService;
 use OGame\Services\ObjectService;
 use OGame\Services\PlanetService;
 use OGame\Services\PlayerService;
@@ -213,6 +215,18 @@ class AttackMission extends GameMission
                     }
                 }
             }
+        }
+
+        // If the defender was a persistent NPC base and its ship garrison was
+        // wiped out, start its respawn timer. Defenses are deliberately excluded
+        // from this check: they're subject to the same "repaired defenses" rule
+        // as any other planet ($battleResult->repairedDefenses, handled above),
+        // which routinely restores most/all destroyed defenses after the battle
+        // -- so a defended base would otherwise almost never register as cleared.
+        // Ships never repair, making them the reliable "cleared" signal.
+        $npcBase = NpcBase::where('planet_id', $defenderPlanet->getPlanetId())->first();
+        if ($npcBase !== null && $npcBase->isActive() && $defenderPlanet->getShipUnits()->getAmount() === 0) {
+            resolve(NPCBaseService::class)->markCleared($npcBase);
         }
 
         // Process attacker fleet results (handle multi-fleet ACS battles)

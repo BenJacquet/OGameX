@@ -55,6 +55,26 @@ class NPCFleetGeneratorService
     }
 
     /**
+     * Generate a ship fleet for a fixed target value, without deriving anything
+     * from an attacking player's fleet. Used by persistent NPC bases, whose
+     * garrison strength is fixed per base (tiered by galaxy position) rather
+     * than scaled to whichever player happens to attack.
+     *
+     * @param int $fleetValue Total resource value to spend on ships.
+     * @param string $npcType 'pirate' or 'alien'
+     * @param int $maxShipTier Maximum ship tier eligible to appear (1-4), see NpcBaseTier::getMaxShipTier().
+     * @return UnitCollection
+     */
+    public function generateFleetForFixedValue(int $fleetValue, string $npcType, int $maxShipTier): UnitCollection
+    {
+        if ($fleetValue <= 0) {
+            return new UnitCollection();
+        }
+
+        return $this->generateMixedFleet($fleetValue, $npcType, $maxShipTier);
+    }
+
+    /**
      * Calculate the total value of a fleet (sum of ship costs).
      *
      * @param UnitCollection $fleet

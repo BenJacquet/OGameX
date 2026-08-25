@@ -7,8 +7,11 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use OGame\Factories\PlanetServiceFactory;
 use OGame\GameConstants\UniverseConstants;
+use OGame\Models\Enums\PlanetType;
+use OGame\Models\Planet;
 use OGame\Models\Planet\Coordinate;
 use OGame\Models\Resources;
+use OGame\Services\AllianceClassService;
 use OGame\Services\PhalanxService;
 use OGame\Services\PlayerService;
 
@@ -163,6 +166,114 @@ class PhalanxController extends OGameController
                 'player_name' => $target_player->getUsername(),
             ],
             'scan_cost' => $phalanxService->getScanCost(),
+            'fleet_count' => count($fleet_movements),
+            'content_html' => $content_html,
+        ]);
+    }
+
+    /**
+     * Scan every populated planet in a system using sensor phalanx (Researcher alliance class bonus).
+     *
+     * @param Request $request
+     * @param PlayerService $player
+     * @param PhalanxService $phalanxService
+     * @param AllianceClassService $allianceClassService
+     * @return JsonResponse
+     * @throws Exception
+     */
+    public function scanSystem(Request $request, PlayerService $player, PhalanxService $phalanxService, AllianceClassService $allianceClassService): JsonResponse
+    {
+        $request->validate([
+            'galaxy' => 'required|integer|min:1',
+            'system' => 'required|integer|min:1|max:' . UniverseConstants::MAX_SYSTEM_COUNT,
+        ]);
+
+        $galaxy = (int)$request->input('galaxy');
+        $system = (int)$request->input('system');
+
+        $response = [
+            'success' => true,
+            'server_time' => time(),
+            'target' => [
+                'galaxy' => $galaxy,
+                'system' => $system,
+            ],
+        ];
+
+        // System-wide scanning is a Researcher alliance class bonus.
+        if (!$allianceClassService->isResearcher($player->getUser())) {
+            $response['is_error'] = true;
+            $response['error_message'] = 'System-wide Sensor Phalanx scanning requires an active Researcher alliance class.';
+            return response()->json($response);
+        }
+
+        $current_planet = $player->planets->current();
+
+        if (!$current_planet->isMoon()) {
+            $response['is_error'] = true;
+            $response['error_message'] = 'Sensor Phalanx can only be used from a moon.';
+            return response()->json($response);
+        }
+
+        $phalanx_level = $current_planet->getObjectLevel('sensor_phalanx');
+
+        if ($phalanx_level === 0) {
+            $response['is_error'] = true;
+            $response['error_message'] = 'No Sensor Phalanx built on this moon.';
+            return response()->json($response);
+        }
+
+        $moon_coordinates = $current_planet->getPlanetCoordinates();
+        $target_coordinate = new Coordinate($galaxy, $system, 1);
+
+        if (!$phalanxService->canScanTarget($moon_coordinates->galaxy, $moon_coordinates->system, $phalanx_level, $target_coordinate, $player->getId())) {
+            $max_range = $phalanxService->calculatePhalanxRange($phalanx_level, $player->getId());
+            $response['is_error'] = true;
+            $response['error_message'] = 'Target is out of range. Your sensor phalanx (Level ' . $phalanx_level . ') can scan up to ' . $max_range . ' systems away.';
+            return response()->json($response);
+        }
+
+        // Count scannable planets in the system to determine the total deuterium cost (one scan per planet).
+        $planet_count = Planet::where('galaxy', $galaxy)
+            ->where('system', $system)
+            ->where('planet_type', PlanetType::Planet->value)
+            ->whereNotNull('user_id')
+            ->where('user_id', '!=', $player->getId())
+            ->count();
+
+        if ($planet_count === 0) {
+            $response['is_error'] = true;
+            $response['error_message'] = 'No populated planets found in this system.';
+            return response()->json($response);
+        }
+
+        $total_scan_cost = $phalanxService->getScanCost() * $planet_count;
+
+        if ($current_planet->deuterium()->get() < $total_scan_cost) {
+            $response['is_error'] = true;
+            $response['error_message'] = 'Not enough Deuterium!';
+            return response()->json($response);
+        }
+
+        $fleet_movements = $phalanxService->scanSystemFleets($galaxy, $system, $player->getId());
+
+        $scan_cost = new Resources(0, 0, $total_scan_cost, 0);
+        $current_planet->deductResources($scan_cost);
+
+        $content_html = view('ingame.phalanx.content', [
+            'fleet_movements' => $fleet_movements,
+            'server_time' => time(),
+            'scanner_player_id' => $player->getId(),
+        ])->render();
+
+        return response()->json([
+            'success' => true,
+            'server_time' => time(),
+            'target' => [
+                'galaxy' => $galaxy,
+                'system' => $system,
+            ],
+            'scan_cost' => $total_scan_cost,
             'fleet_count' => count($fleet_movements),
             'content_html' => $content_html,
         ]);

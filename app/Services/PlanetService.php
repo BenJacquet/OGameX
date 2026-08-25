@@ -7,6 +7,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use OGame\Enums\Lifeform;
 use OGame\Factories\PlanetServiceFactory;
 use OGame\Factories\PlayerServiceFactory;
 use OGame\GameObjects\Models\Abstracts\GameObject;
@@ -510,7 +511,27 @@ class PlanetService
             $extra_fields += $this->planet->lunar_base * 3;
         }
 
+        $extra_fields += $this->planet->field_bonus_items;
+
         return $extra_fields + $this->planet->field_max;
+    }
+
+    /**
+     * Permanently increase this planet's field capacity by the given amount (e.g. from an activated
+     * planet-size shop item). This is additive to and separate from the base field_max, terraformer,
+     * and lunar base bonuses that also contribute to getPlanetFieldMax().
+     *
+     * @param int $amount
+     * @param bool $save_planet
+     * @return void
+     */
+    public function addFieldBonus(int $amount, bool $save_planet = true): void
+    {
+        $this->planet->field_bonus_items += $amount;
+
+        if ($save_planet) {
+            $this->save();
+        }
     }
 
     /**
@@ -1005,6 +1026,13 @@ class PlanetService
             $time_seconds = (int)($time_seconds * $timeMultiplier);
         }
 
+        // Apply Technocrat officer research time multiplier (-25%)
+        $officerService = app(OfficerService::class);
+        $officerTimeMultiplier = $officerService->getResearchTimeMultiplier($this->player->getUser());
+        if ($officerTimeMultiplier != 1.0) {
+            $time_seconds = (int)($time_seconds * $officerTimeMultiplier);
+        }
+
         // Minimum time is always 1 second for all objects/units.
         if ($time_seconds < 1) {
             $time_seconds = 1;
@@ -1117,6 +1145,10 @@ class PlanetService
                 // Refresh the planet object to ensure we have the latest data after retrieving the lock above.
                 $this->reloadPlanet();
 
+                // Captured before step 2 overwrites time_last_update, so the lifeform
+                // accrual tick (step 7) knows how much time has actually elapsed.
+                $previousUpdate = $this->getUpdatedAt();
+
                 // ------
                 // 1. Update building queue (handles segmented resource calculation)
                 // ------
@@ -1141,6 +1173,16 @@ class PlanetService
                 // 5. Update resource storage
                 // ------
                 $this->updateResourceStorageStats(false);
+
+                // ------
+                // 6. Update lifeform building queue
+                // ------
+                $this->updateLifeformBuildingQueue(false);
+
+                // ------
+                // 7. Update lifeform population/food accrual
+                // ------
+                resolve(LifeformService::class)->updatePopulationAndFood($this, $previousUpdate, false);
 
                 // Save the planet manually here to prevent it from happening 5+ times in the methods above.
                 $this->save();
@@ -1506,6 +1548,11 @@ class PlanetService
                 // Check if this is a downgrade
                 $is_downgrade = $item->is_downgrade ?? false;
 
+                // Settle any pending Dark Matter accrual (admin passive regen + Dark Matter
+                // Factory production) at the OLD rate before the level change below can alter
+                // it, mirroring the resource settlement above.
+                resolve(DarkMatterService::class)->settleRegeneration($player->getUser());
+
                 // Update building level. If the object type is invalid (e.g. a research object somehow
                 // ended up in the building queue due to a prior bug), skip it gracefully. The item is
                 // already marked processed above, so it will not be retried on the next page load.
@@ -1539,6 +1586,256 @@ class PlanetService
         // If there were no finished queue items at all, we still check if we need to start the next one.
         if ($build_queue->isEmpty()) {
             $queue->start($this);
+        }
+    }
+
+    /**
+     * Process finished lifeform building queue items for this planet: apply completed
+     * levels, update population/food max where applicable, and start the next queued
+     * item. Mirrors updateBuildingQueue() above but for the separate lifeform queue
+     * (ideas/lifeforms.md 2.3).
+     *
+     * @param bool $save_planet
+     * @return void
+     * @throws Exception
+     */
+    public function updateLifeformBuildingQueue(bool $save_planet = true): void
+    {
+        $player = $this->getPlayer();
+        if ($player === null) {
+            throw new RuntimeException('Planet has no owner.');
+        }
+
+        if ($player->isInVacationMode()) {
+            return;
+        }
+
+        $queue = resolve(LifeformBuildingQueueService::class);
+        $lifeformService = resolve(LifeformService::class);
+
+        do {
+            $finished = $queue->retrieveFinished($this->getPlanetId());
+            $processed_any = false;
+
+            foreach ($finished as $item) {
+                $item->processed = 1;
+                $item->save();
+
+                $lifeformService->setBuildingLevel($this, $item->object_machine_name, $item->object_level_target);
+
+                // Recompute both capacities from every built lifeform building (not
+                // just the one that just completed) - e.g. Residential Sector +
+                // Skyscraper both contribute to population_max (Phase 3b).
+                $this->setLifeformPopulationMax($lifeformService->calculatePopulationMax($this), false);
+                $this->setLifeformFoodMax($lifeformService->calculateFoodMax($this), false);
+
+                $queue->start($this, $item->time_end);
+
+                $processed_any = true;
+                break;
+            }
+        } while ($processed_any);
+
+        if ($finished->isEmpty()) {
+            $queue->start($this);
+        }
+
+        if ($save_planet) {
+            $this->save();
+        }
+    }
+
+    /**
+     * Get the species currently settled on this planet.
+     *
+     * @return Lifeform
+     */
+    public function getLifeform(): Lifeform
+    {
+        // Falls back to Humans (the documented default for every planet, see the
+        // planets.lifeform migration) rather than throwing when the column is unset
+        // or invalid - e.g. lightweight in-memory Planet fixtures used by tests that
+        // predate the lifeform feature and never set this column.
+        return Lifeform::tryFrom($this->planet->lifeform) ?? Lifeform::HUMANS;
+    }
+
+    /**
+     * Set the species currently settled on this planet.
+     *
+     * @param Lifeform $lifeform
+     * @param bool $save_planet
+     * @return void
+     */
+    public function setLifeform(Lifeform $lifeform, bool $save_planet = true): void
+    {
+        $this->planet->lifeform = $lifeform->value;
+
+        if ($save_planet) {
+            $this->save();
+        }
+    }
+
+    /**
+     * Get the current lifeform population on this planet.
+     *
+     * @return float
+     */
+    public function getLifeformPopulation(): float
+    {
+        return (float)$this->planet->lifeform_population;
+    }
+
+    /**
+     * Set the current lifeform population on this planet.
+     *
+     * @param float $value
+     * @param bool $save_planet
+     * @return void
+     */
+    public function setLifeformPopulation(float $value, bool $save_planet = true): void
+    {
+        $this->planet->lifeform_population = $value;
+
+        if ($save_planet) {
+            $this->save();
+        }
+    }
+
+    /**
+     * Get the current lifeform population capacity on this planet.
+     *
+     * @return float
+     */
+    public function getLifeformPopulationMax(): float
+    {
+        return (float)$this->planet->lifeform_population_max;
+    }
+
+    /**
+     * Set the current lifeform population capacity on this planet.
+     *
+     * @param float $value
+     * @param bool $save_planet
+     * @return void
+     */
+    public function setLifeformPopulationMax(float $value, bool $save_planet = true): void
+    {
+        $this->planet->lifeform_population_max = $value;
+
+        if ($save_planet) {
+            $this->save();
+        }
+    }
+
+    /**
+     * Get the current lifeform food on this planet.
+     *
+     * @return float
+     */
+    public function getLifeformFood(): float
+    {
+        return (float)$this->planet->lifeform_food;
+    }
+
+    /**
+     * Set the current lifeform food on this planet.
+     *
+     * @param float $value
+     * @param bool $save_planet
+     * @return void
+     */
+    public function setLifeformFood(float $value, bool $save_planet = true): void
+    {
+        $this->planet->lifeform_food = $value;
+
+        if ($save_planet) {
+            $this->save();
+        }
+    }
+
+    /**
+     * Get the current lifeform food capacity on this planet.
+     *
+     * @return float
+     */
+    public function getLifeformFoodMax(): float
+    {
+        return (float)$this->planet->lifeform_food_max;
+    }
+
+    /**
+     * Set the current lifeform food capacity on this planet.
+     *
+     * @param float $value
+     * @param bool $save_planet
+     * @return void
+     */
+    public function setLifeformFoodMax(float $value, bool $save_planet = true): void
+    {
+        $this->planet->lifeform_food_max = $value;
+
+        if ($save_planet) {
+            $this->save();
+        }
+    }
+
+    /**
+     * Get the current lifeform experience (raw XP) on this planet. Nothing grants XP
+     * yet (doc's exploration/discovery system is a later phase), so this is always 0
+     * in practice today.
+     *
+     * @return int
+     */
+    public function getLifeformExperience(): int
+    {
+        return (int)$this->planet->lifeform_experience;
+    }
+
+    /**
+     * Add lifeform experience (raw XP) to this planet. Granted by exploration missions
+     * (Phase 4a) - see LifeformExplorationService::applyExperienceOutcome().
+     *
+     * @param int $amount
+     * @param bool $save_planet
+     * @return void
+     */
+    public function addLifeformExperience(int $amount, bool $save_planet = true): void
+    {
+        $this->planet->lifeform_experience = $this->getLifeformExperience() + $amount;
+
+        if ($save_planet) {
+            $this->save();
+        }
+    }
+
+    /**
+     * Get the timestamp this planet's lifeform species was last changed (null if
+     * never changed). Used for the 48h "Change Lifeform" cooldown (Phase 4b).
+     *
+     * @return Carbon|null
+     */
+    public function getLifeformChangedAt(): Carbon|null
+    {
+        if ($this->planet->lifeform_changed_at === null) {
+            return null;
+        }
+
+        return new Carbon($this->planet->lifeform_changed_at);
+    }
+
+    /**
+     * Set the timestamp this planet's lifeform species was last changed.
+     *
+     * @param Carbon|null $value
+     * @param bool $save_planet
+     * @return void
+     */
+    public function setLifeformChangedAt(Carbon|null $value, bool $save_planet = true): void
+    {
+        $this->planet->lifeform_changed_at = $value?->format('Y-m-d H:i:s');
+
+        if ($save_planet) {
+            $this->save();
         }
     }
 
@@ -2145,6 +2442,8 @@ class PlanetService
         $object->production->planetService = $this;
         $object->production->playerService = $this->player;
         $object->production->characterClassService = app(CharacterClassService::class);
+        $object->production->allianceClassService = app(AllianceClassService::class);
+        $object->production->lifeformService = app(LifeformService::class);
         $object->production->universe_speed = $this->settingsService->economySpeed();
 
         return $object->production->calculate($object_level, $resource_production_factor * $building_percentage);
@@ -2200,6 +2499,7 @@ class PlanetService
         $metalMine->production->planetService = $this;
         $metalMine->production->playerService = $this->player;
         $metalMine->production->characterClassService = app(CharacterClassService::class);
+        $metalMine->production->allianceClassService = app(AllianceClassService::class);
         $metalMine->production->universe_speed = $this->settingsService->economySpeed();
 
         return $metalMine->production->getCrawlerEnergyConsumption();
@@ -2216,17 +2516,34 @@ class PlanetService
      */
     public function getResourceProductionFactor(): int
     {
+        return self::calculateResourceProductionFactor(
+            (int)$this->energyProduction()->get(),
+            (int)$this->energyConsumption()->get()
+        );
+    }
+
+    /**
+     * Calculate the energy-shortage production factor from raw energy production/consumption
+     * values, without requiring a PlanetService instance.
+     *
+     * @param int $energyProduction
+     * @param int $energyConsumption
+     * @return int
+     *  The production factor expressed as a percentage (min 0, max 100).
+     */
+    public static function calculateResourceProductionFactor(int $energyProduction, int $energyConsumption): int
+    {
         // if no consumption, then there should be no impact to production factor
-        if (empty($this->energyConsumption()->get())) {
+        if (empty($energyConsumption)) {
             return 100;
         }
 
         // if there is consumption, but energy production is 0, then production factor = 0
-        if (empty($this->energyProduction()->get())) {
+        if (empty($energyProduction)) {
             return 0;
         }
 
-        $production_factor = floor($this->energyProduction()->get() / $this->energyConsumption()->get() * 100);
+        $production_factor = floor($energyProduction / $energyConsumption * 100);
 
         // Force min 0, max 100.
         if ($production_factor > 100) {
@@ -2442,6 +2759,27 @@ class PlanetService
         $storage_metal = eval($building->storage->metal);
         $storage_crystal = eval($building->storage->crystal);
         $storage_deuterium = eval($building->storage->deuterium);
+
+        // Apply the Hyperspace Technology storage capacity bonus (15% per level).
+        $hyperspaceTechnologyLevel = $this->player->getResearchLevel('hyperspace_technology');
+        if ($hyperspaceTechnologyLevel > 0) {
+            $hyperspaceStorageBonus = 1 + (0.15 * $hyperspaceTechnologyLevel);
+            $storage_metal = (int)($storage_metal * $hyperspaceStorageBonus);
+            $storage_crystal = (int)($storage_crystal * $hyperspaceStorageBonus);
+            $storage_deuterium = (int)($storage_deuterium * $hyperspaceStorageBonus);
+        }
+
+        // Apply the Trader alliance class storage capacity bonus (planet and moon rates differ).
+        $allianceClassService = app(AllianceClassService::class);
+        $storageBonus = $this->isMoon()
+            ? $allianceClassService->getAllianceMoonStorageBonus($this->player->getUser())
+            : $allianceClassService->getAlliancePlanetStorageBonus($this->player->getUser());
+
+        if ($storageBonus > 1.0) {
+            $storage_metal = (int)($storage_metal * $storageBonus);
+            $storage_crystal = (int)($storage_crystal * $storageBonus);
+            $storage_deuterium = (int)($storage_deuterium * $storageBonus);
+        }
 
         return new Resources($storage_metal, $storage_crystal, $storage_deuterium, 0);
     }

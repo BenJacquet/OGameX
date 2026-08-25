@@ -11,9 +11,11 @@ use OGame\Models\Resources;
 use OGame\Models\UnitQueue;
 use OGame\Models\User;
 use OGame\Services\BuildingQueueService;
+use OGame\Services\DarkMatterService;
 use OGame\Services\DarkMatterTransactionService;
 use OGame\Services\HalvingService;
 use OGame\Services\ObjectService;
+use OGame\Services\SettingsService;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\AccountTestCase;
 
@@ -26,7 +28,9 @@ class HalvingServiceTest extends AccountTestCase
         parent::setUp();
 
         $transactionService = app(DarkMatterTransactionService::class);
-        $this->halvingService = new HalvingService($transactionService);
+        $settingsService = app(SettingsService::class);
+        $darkMatterService = new DarkMatterService($transactionService, $settingsService);
+        $this->halvingService = new HalvingService($transactionService, $darkMatterService);
     }
 
     /**

@@ -45,10 +45,11 @@
                                 </a>
                             </div>
                         </div>			</li>
-                    <li class="button" id="button2">
+                    @foreach ($officers as $officer)
+                    <li class="button {{ $officer['active'] ? 'on' : '' }}" id="button{{ $officer['type']->value }}">
                         <div class="premium">
-                            <div class="officers100  commander">
-                                <a tabindex="2" href="javascript:void(0);" title="{{ __('t_ingame.premium.info_commander') }}" ref="2" class="detail_button tooltip js_hideTipOnMobile slideIn">
+                            <div class="officers100  {{ $officer['type']->getMachineName() }}">
+                                <a tabindex="{{ $officer['type']->value }}" href="javascript:void(0);" onclick="hireOfficer({{ $officer['type']->value }})" title="{{ __('t_ingame.premium.info_' . $officer['type']->getMachineName()) }}" ref="{{ $officer['type']->value }}" class="detail_button tooltip js_hideTipOnMobile slideIn">
                         <span class="ecke">
                             <span class="level">
                                 <img src="/img/icons/aa2ad16d1e00956f7dc8af8be3ca52.gif" width="12" height="11">
@@ -56,64 +57,22 @@
                         </span>
                                 </a>
                             </div>
-                        </div>
-                    </li>
-                    <li class="button" id="button3">
-                        <div class="premium">
-                            <div class="officers100  admiral">
-                                <a tabindex="3" href="javascript:void(0);" title="{{ __('t_ingame.premium.info_admiral') }}" ref="3" class="detail_button tooltip js_hideTipOnMobile slideIn">
-                        <span class="ecke">
-                            <span class="level">
-                                <img src="/img/icons/aa2ad16d1e00956f7dc8af8be3ca52.gif" width="12" height="11">
-                            </span>
-                        </span>
-                                </a>
+                            <div class="remaining tooltip" title="{{ __('t_ingame.premium.price_per_week', ['price' => number_format($weeklyCost, 0, ',', '.')]) }}">
+                                <span class="remDate">
+                                    @if ($officer['active'])
+                                        {{ __('t_ingame.premium.active_until', ['date' => $officer['expiresAt']->format('Y-m-d H:i')]) }}
+                                    @else
+                                        {{ __('t_ingame.premium.price_per_week', ['price' => number_format($weeklyCost, 0, ',', '.')]) }}
+                                    @endif
+                                </span>
                             </div>
                         </div>
                     </li>
-                    <li class="button" id="button4">
-                        <div class="premium">
-                            <div class="officers100  engineer">
-                                <a tabindex="4" href="javascript:void(0);" title="{{ __('t_ingame.premium.info_engineer') }}" ref="4" class="detail_button tooltip js_hideTipOnMobile slideIn">
-                        <span class="ecke">
-                            <span class="level">
-                                <img src="/img/icons/aa2ad16d1e00956f7dc8af8be3ca52.gif" width="12" height="11">
-                            </span>
-                        </span>
-                                </a>
-                            </div>
-                        </div>
-                    </li>
-                    <li class="button" id="button5">
-                        <div class="premium">
-                            <div class="officers100  geologist">
-                                <a tabindex="5" href="javascript:void(0);" title="{{ __('t_ingame.premium.info_geologist') }}" ref="5" class="detail_button tooltip js_hideTipOnMobile slideIn">
-                        <span class="ecke">
-                            <span class="level">
-                                <img src="/img/icons/aa2ad16d1e00956f7dc8af8be3ca52.gif" width="12" height="11">
-                            </span>
-                        </span>
-                                </a>
-                            </div>
-                        </div>
-                    </li>
-                    <li class="button" id="button6">
-                        <div class="premium">
-                            <div class="officers100  technocrat">
-                                <a tabindex="6" href="javascript:void(0);" title="{{ __('t_ingame.premium.info_technocrat') }}" ref="6" class="detail_button tooltip js_hideTipOnMobile slideIn">
-                        <span class="ecke">
-                            <span class="level">
-                                <img src="/img/icons/aa2ad16d1e00956f7dc8af8be3ca52.gif" width="12" height="11">
-                            </span>
-                        </span>
-                                </a>
-                            </div>
-                        </div>
-                    </li>
+                    @endforeach
                     <li class="button" id="button12">
                         <div class="premium">
                             <div class="officers100  allOfficers">
-                                <a tabindex="12" href="javascript:void(0);" title="{{ __('t_ingame.premium.info_commanding_staff') }}" ref="12" class="detail_button tooltip js_hideTipOnMobile slideIn">
+                                <a tabindex="12" href="javascript:void(0);" onclick="hireAllOfficers()" title="{{ __('t_ingame.premium.info_commanding_staff') }}" ref="12" class="detail_button tooltip js_hideTipOnMobile slideIn">
                         <span class="ecke">
                             <span class="level">
                                 <img src="/img/icons/aa2ad16d1e00956f7dc8af8be3ca52.gif" width="12" height="11">
@@ -122,7 +81,7 @@
                                 </a>
                             </div>
                             <div class="remaining tooltip " title="">
-                                <span class="remDate">{{ __('t_ingame.premium.remaining_officers', ['current' => 0, 'max' => 5]) }}</span>
+                                <span class="remDate">{{ __('t_ingame.premium.remaining_officers', ['current' => collect($officers)->where('active', true)->count(), 'max' => 5]) }}</span>
                             </div>
                         </div>
                     </li>
@@ -135,5 +94,69 @@
             </div>
         </div>
     </div>
+
+    <script type="text/javascript">
+        function hireOfficer(officerTypeId) {
+            errorBoxDecision(
+                '{{ __('t_ingame.premium.recruit_officers') }}',
+                '{{ __('t_ingame.premium.confirm_hire', ['price' => number_format($weeklyCost, 0, ',', '.')]) }}',
+                'Confirm',
+                'Cancel',
+                function() {
+                    submitHireRequest(officerTypeId);
+                }
+            );
+        }
+
+        function hireAllOfficers() {
+            errorBoxDecision(
+                '{{ __('t_ingame.premium.recruit_officers') }}',
+                '{{ __('t_ingame.premium.confirm_hire_all', ['price' => number_format($weeklyCost * 5, 0, ',', '.')]) }}',
+                'Confirm',
+                'Cancel',
+                function() {
+                    submitHireRequest(null);
+                }
+            );
+        }
+
+        function submitHireRequest(officerTypeId) {
+            fetch('{{ route('premium.hire') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    officerTypeId: officerTypeId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    fadeBox(data.message, false);
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
+                } else if (data.lackingDM) {
+                    errorBoxDecision(
+                        'Not enough Dark Matter',
+                        '{{ __('t_ingame.premium.insufficient_dm') }}',
+                        'Buy Dark Matter',
+                        'Cancel',
+                        function() {
+                            window.location.href = '/premium';
+                        }
+                    );
+                } else {
+                    fadeBox(data.message, true);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                fadeBox('An error occurred. Please try again.', true);
+            });
+        }
+    </script>
 
 @endsection

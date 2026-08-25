@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property int $diameter
  * @property int $field_current
  * @property int $field_max
+ * @property int $field_bonus_items
  * @property int $temp_min
  * @property int $temp_max
  * @property float $metal
@@ -82,6 +83,13 @@ use Illuminate\Support\Carbon;
  * @property int $large_shield_dome
  * @property int $anti_ballistic_missile
  * @property int $interplanetary_missile
+ * @property int $lifeform
+ * @property float $lifeform_population
+ * @property float $lifeform_population_max
+ * @property float $lifeform_food
+ * @property float $lifeform_food_max
+ * @property int $lifeform_experience
+ * @property string|Carbon|null $lifeform_changed_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @method static Builder|Planet newModelQuery()

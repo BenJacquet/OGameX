@@ -7,7 +7,9 @@ use OGame\Models\{
     ProductionIndex,
 };
 use OGame\Services\{
+    AllianceClassService,
     CharacterClassService,
+    LifeformService,
     PlanetService,
     PlayerService,
 };
@@ -51,6 +53,23 @@ class GameObjectProduction
     public ?Closure $deuterium_formula = null;
 
     /**
+     * Dark Matter production formula in \Closure format. Unlike the other formulas, this is
+     * NOT run through calculate()'s bonus-stacking pipeline (Plasma Technology, Geologist,
+     * Crawlers, officers, Character Class) or the per-planet resource system - Dark Matter is
+     * a per-user global balance, not a per-planet resource. It's declared here purely so the
+     * Dark Matter Factory's own formula lives alongside every other building's, and is read
+     * directly by DarkMatterService.
+     * The function is given two arguments and expects a float return value in Dark Matter
+     * per hour.
+     * Arguments:
+     *   1. GameObjectProduction $gameObjectProduction
+     *   2. int $level
+     *
+     * @var ?Closure
+     */
+    public ?Closure $dark_matter_formula = null;
+
+    /**
      * Energy production formula in \Closure format.
      * The function is given two arguments and expects a float return value,
      *      which represents the Energy production amount.
@@ -82,6 +101,20 @@ class GameObjectProduction
      * @var CharacterClassService|null
      */
     public ?CharacterClassService $characterClassService = null;
+
+    /**
+     * The alliance class service for bonus calculations
+     *
+     * @var AllianceClassService|null
+     */
+    public ?AllianceClassService $allianceClassService = null;
+
+    /**
+     * The lifeform service for bonus calculations
+     *
+     * @var LifeformService|null
+     */
+    public ?LifeformService $lifeformService = null;
 
     /**
      * The Universe speed, set by a server admin.
@@ -125,9 +158,11 @@ class GameObjectProduction
         $this->calculateEngineer($productionIndex);
         $this->calculateGeologist($productionIndex);
         $this->calculateCharacterClass($productionIndex);
+        $this->calculateAllianceClass($productionIndex);
         $this->calculateCrawlerProduction($productionIndex);
         $this->calculateCommandingStaff($productionIndex);
         $this->calculateItems($productionIndex);
+        $this->calculateLifeform($productionIndex);
         $this->calculateTotal($productionIndex);
 
         return $productionIndex;
@@ -354,6 +389,61 @@ class GameObjectProduction
     }
 
     /**
+     * Calculates Alliance Class bonus
+     * - Trader: +5% mines, +5% energy
+     *
+     * @param ProductionIndex $productionIndex
+     * @return void
+     */
+    private function calculateAllianceClass(ProductionIndex $productionIndex): void
+    {
+        if (!$this->allianceClassService) {
+            return;
+        }
+
+        $user = $this->playerService->getUser();
+
+        // Get mine production bonus (Trader only: +5%)
+        $mineBonus = $this->allianceClassService->getAllianceMineProductionBonus($user);
+        if ($mineBonus > 1.0) {
+            if ($productionIndex->mine->metal->get() > 0) {
+                $productionIndex->alliance_class->metal->set(
+                    floor(
+                        ($productionIndex->mine->metal->get() + $productionIndex->planet_slot->metal->get())
+                        * ($mineBonus - 1.0)
+                    )
+                );
+            }
+
+            if ($productionIndex->mine->crystal->get() > 0) {
+                $productionIndex->alliance_class->crystal->set(
+                    floor(
+                        ($productionIndex->mine->crystal->get() + $productionIndex->planet_slot->crystal->get())
+                        * ($mineBonus - 1.0)
+                    )
+                );
+            }
+
+            if ($productionIndex->mine->deuterium->get() > 0) {
+                $productionIndex->alliance_class->deuterium->set(
+                    floor(
+                        ($productionIndex->mine->deuterium->get() + $productionIndex->planet_slot->deuterium->get())
+                        * ($mineBonus - 1.0)
+                    )
+                );
+            }
+        }
+
+        // Get energy production bonus (Trader only: +5%)
+        $energyBonus = $this->allianceClassService->getAllianceEnergyProductionBonus($user);
+        if ($energyBonus > 1.0 && $productionIndex->mine->energy->get() > 0) {
+            $productionIndex->alliance_class->energy->set(
+                floor($productionIndex->mine->energy->get() * ($energyBonus - 1.0))
+            );
+        }
+    }
+
+    /**
      * Calculates Crawler production bonus (resources only, not energy consumption)
      * Crawlers provide production bonus based on:
      * - Number of crawlers on planet
@@ -546,6 +636,51 @@ class GameObjectProduction
     }
 
     /**
+     * Calculates the combined lifeform bonus (building + research + experience,
+     * amplified by Metropolis - see LifeformService::getProductionBonus() and
+     * ideas/lifeforms.md 1.8 for the stacking rule).
+     *
+     * @param ProductionIndex $productionIndex
+     * @return void
+     */
+    private function calculateLifeform(ProductionIndex $productionIndex): void
+    {
+        if (!$this->lifeformService) {
+            return;
+        }
+
+        $metalBonus = $this->lifeformService->getProductionBonus($this->planetService, $this->playerService, 'metal');
+        if ($metalBonus > 1.0 && $productionIndex->mine->metal->get() > 0) {
+            $productionIndex->lifeform->metal->set(
+                floor(
+                    ($productionIndex->mine->metal->get() + $productionIndex->planet_slot->metal->get())
+                    * ($metalBonus - 1.0)
+                )
+            );
+        }
+
+        $crystalBonus = $this->lifeformService->getProductionBonus($this->planetService, $this->playerService, 'crystal');
+        if ($crystalBonus > 1.0 && $productionIndex->mine->crystal->get() > 0) {
+            $productionIndex->lifeform->crystal->set(
+                floor(
+                    ($productionIndex->mine->crystal->get() + $productionIndex->planet_slot->crystal->get())
+                    * ($crystalBonus - 1.0)
+                )
+            );
+        }
+
+        $deuteriumBonus = $this->lifeformService->getProductionBonus($this->planetService, $this->playerService, 'deuterium');
+        if ($deuteriumBonus > 1.0 && $productionIndex->mine->deuterium->get() > 0) {
+            $productionIndex->lifeform->deuterium->set(
+                floor(
+                    ($productionIndex->mine->deuterium->get() + $productionIndex->planet_slot->deuterium->get())
+                    * ($deuteriumBonus - 1.0)
+                )
+            );
+        }
+    }
+
+    /**
      * Calculates total production, sum of all production + bonuses.
      *
      * @param ProductionIndex $productionIndex
@@ -560,8 +695,10 @@ class GameObjectProduction
         $productionIndex->total->add($productionIndex->engineer);
         $productionIndex->total->add($productionIndex->geologist);
         $productionIndex->total->add($productionIndex->character_class);
+        $productionIndex->total->add($productionIndex->alliance_class);
         $productionIndex->total->add($productionIndex->crawler);
         $productionIndex->total->add($productionIndex->commanding_staff);
         $productionIndex->total->add($productionIndex->items);
+        $productionIndex->total->add($productionIndex->lifeform);
     }
 }

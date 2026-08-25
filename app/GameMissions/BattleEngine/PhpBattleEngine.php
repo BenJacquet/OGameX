@@ -2,11 +2,14 @@
 
 namespace OGame\GameMissions\BattleEngine;
 
+use OGame\Factories\PlanetServiceFactory;
 use OGame\GameMissions\BattleEngine\Models\BattleResult;
 use OGame\GameMissions\BattleEngine\Models\BattleResultRound;
 use OGame\GameMissions\BattleEngine\Models\BattleUnit;
 use OGame\GameObjects\Models\Units\UnitCollection;
 use OGame\Services\CharacterClassService;
+use OGame\Services\LifeformService;
+use OGame\Services\PlanetService;
 use OGame\Services\SettingsService;
 
 /**
@@ -32,14 +35,29 @@ class PhpBattleEngine extends BattleEngine
 
         // Convert attacker units to BattleUnit objects to keep track of hull plating and shields.
         // Each attacker fleet uses its own player's tech levels.
+        $lifeformService = app(LifeformService::class);
+        $planetServiceFactory = app(PlanetServiceFactory::class);
+
         $attackerUnits = [];
         foreach ($this->attackers as $attackerFleet) {
+            // Resolve the origin planet once per fleet (not per unit) for the lifeform
+            // combat bonus (Mk II techs, see LifeformService::getCombatBonusMultiplier()).
+            // Fails safe to null (no bonus) if the fleet has no resolvable origin, e.g.
+            // test battles that construct an AttackerFleet without a real FleetMission.
+            $originPlanet = null;
+            if ($attackerFleet->fleetMission !== null && $attackerFleet->fleetMission->planet_id_from !== null) {
+                $originPlanet = $planetServiceFactory->make($attackerFleet->fleetMission->planet_id_from);
+            }
+
             foreach ($attackerFleet->units->units as $unit) {
                 // Create new object for each unique unit in this fleet.
                 // Use THIS fleet owner's tech levels for calculations
-                $structuralIntegrity = $unit->unitObject->properties->structural_integrity->calculate($attackerFleet->player)->totalValue;
-                $shieldPoints = $unit->unitObject->properties->shield->calculate($attackerFleet->player)->totalValue;
-                $attackPower = $unit->unitObject->properties->attack->calculate($attackerFleet->player)->totalValue;
+                $lifeformMultiplier = $originPlanet !== null
+                    ? $lifeformService->getCombatBonusMultiplier($originPlanet, $attackerFleet->player, $unit->unitObject->machine_name)
+                    : 1.0;
+                $structuralIntegrity = (int)round($unit->unitObject->properties->structural_integrity->calculate($attackerFleet->player)->totalValue * $lifeformMultiplier);
+                $shieldPoints = (int)round($unit->unitObject->properties->shield->calculate($attackerFleet->player)->totalValue * $lifeformMultiplier);
+                $attackPower = (int)round($unit->unitObject->properties->attack->calculate($attackerFleet->player)->totalValue * $lifeformMultiplier);
                 $unitObject = new BattleUnit($unit->unitObject, $structuralIntegrity, $shieldPoints, $attackPower, $attackerFleet->fleetMissionId, $attackerFleet->ownerId);
 
                 for ($i = 0; $i < $unit->amount; $i++) {
@@ -52,12 +70,21 @@ class PhpBattleEngine extends BattleEngine
         $defenderUnits = [];
         // Create BattleUnits for each defending fleet separately to preserve ownership and tech levels
         foreach ($this->defenders as $defenderFleet) {
+            // Resolve the defending origin planet once per fleet: stationary planet
+            // forces use the battle's own defender planet directly, ACS-ally fleets
+            // resolve their own origin planet the same way attackers do.
+            $originPlanet = $this->defenderPlanet;
+            if ($defenderFleet->fleetMission !== null && $defenderFleet->fleetMission->planet_id_from !== null) {
+                $originPlanet = $planetServiceFactory->make($defenderFleet->fleetMission->planet_id_from) ?? $this->defenderPlanet;
+            }
+
             foreach ($defenderFleet->units->units as $unit) {
                 // Create new object for each unique unit type in this fleet
                 // Use THIS fleet owner's tech levels for calculations
-                $structuralIntegrity = $unit->unitObject->properties->structural_integrity->calculate($defenderFleet->player)->totalValue;
-                $shieldPoints = $unit->unitObject->properties->shield->calculate($defenderFleet->player)->totalValue;
-                $attackPower = $unit->unitObject->properties->attack->calculate($defenderFleet->player)->totalValue;
+                $lifeformMultiplier = $lifeformService->getCombatBonusMultiplier($originPlanet, $defenderFleet->player, $unit->unitObject->machine_name);
+                $structuralIntegrity = (int)round($unit->unitObject->properties->structural_integrity->calculate($defenderFleet->player)->totalValue * $lifeformMultiplier);
+                $shieldPoints = (int)round($unit->unitObject->properties->shield->calculate($defenderFleet->player)->totalValue * $lifeformMultiplier);
+                $attackPower = (int)round($unit->unitObject->properties->attack->calculate($defenderFleet->player)->totalValue * $lifeformMultiplier);
 
                 $unitObject = new BattleUnit(
                     $unit->unitObject,

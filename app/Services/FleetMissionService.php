@@ -12,6 +12,7 @@ use OGame\GameConstants\UniverseConstants;
 use OGame\GameMessages\AcsDefendArrivalHost;
 use OGame\GameMessages\AcsDefendArrivalSender;
 use OGame\GameMissions\Abstracts\GameMission;
+use OGame\GameMissions\ExpeditionMission;
 use OGame\GameObjects\Models\Units\UnitCollection;
 use OGame\Models\Enums\PlanetType;
 use OGame\Models\FleetMission;
@@ -50,9 +51,11 @@ class FleetMissionService
      * @param UnitCollection $units
      * @param GameMission|null $mission
      * @param float $speed_percent
+     * @param PlayerService|null $targetPlayer The owner of the target planet/moon, if known. Used to apply the
+     * Warrior alliance class same-alliance speed bonus.
      * @return int
      */
-    public function calculateFleetMissionDuration(PlanetService $fromPlanet, Coordinate $to, UnitCollection $units, GameMission|null $mission = null, float $speed_percent = 10): int
+    public function calculateFleetMissionDuration(PlanetService $fromPlanet, Coordinate $to, UnitCollection $units, GameMission|null $mission = null, float $speed_percent = 10, PlayerService|null $targetPlayer = null): int
     {
         // Get slowest unit speed.
         $player = $fromPlanet->getPlayer();
@@ -61,6 +64,21 @@ class FleetMissionService
         }
 
         $slowest_speed = $units->getSlowestUnitSpeed($player);
+
+        // Apply Warrior alliance class speed bonus (+10%) for missions between members of the same alliance.
+        if ($targetPlayer !== null && app(AllianceService::class)->arePlayersInSameAlliance($player->getUser()->id, $targetPlayer->getUser()->id)) {
+            $slowest_speed *= app(AllianceClassService::class)->getAllianceInternalSpeedBonus($player->getUser());
+        }
+
+        // Apply Researcher alliance class expedition speed bonus (+10%) for expedition missions.
+        if ($mission instanceof ExpeditionMission) {
+            $slowest_speed *= app(AllianceClassService::class)->getExpeditionSpeedBonus($player->getUser());
+        }
+
+        // Apply lifeform fleet speed bonus (Fusion Drives / Low-Temperature Drives),
+        // based on the launching planet's active species.
+        $slowest_speed *= app(LifeformService::class)->getFleetSpeedMultiplier($fromPlanet, $player);
+
         $distance = $this->calculateFleetMissionDistance($fromPlanet, $to);
 
         // Determine which fleet speed to use based on mission type.

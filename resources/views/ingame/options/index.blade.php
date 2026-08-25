@@ -475,12 +475,50 @@
                                             </div>
 
                                         </div>
+
+                                        <div class="category fieldwrapper alt bar">
+                                            <label class="styled textBeefy" data-element="accountdata">
+                                                {{ __('t_ingame.options.section_account_data') }}
+                                            </label>
+                                        </div>
+                                        <div class="group bborder" style="display: none;">
+                                            <div class="fieldwrapper">
+                                                <label class="styled textBeefy">{{ __('t_ingame.options.export_data') }}</label>
+                                                <div class="thefield">
+                                                    <a class="ui-button ui-corner-all ui-widget" href="{{ route('options.export') }}">{{ __('t_ingame.options.export_data_button') }}</a>
+                                                </div>
+                                            </div>
+                                            <div class="fieldwrapper">
+                                                <p>{{ __('t_ingame.options.export_data_hint') }}</p>
+                                            </div>
+                                            <div class="fieldwrapper">
+                                                <label class="styled textBeefy">{{ __('t_ingame.options.import_data') }}</label>
+                                                <div class="thefield">
+                                                    <input type="file" name="import_file" form="import-account-data-form" accept="application/json,.json">
+                                                </div>
+                                            </div>
+                                            <div class="fieldwrapper">
+                                                <p>{{ __('t_ingame.options.import_data_hint') }}</p>
+                                            </div>
+                                            <div class="fieldwrapper">
+                                                <label class="styled textBeefy">{{ __('t_ingame.options.import_data_confirm') }}</label>
+                                                <div class="thefield">
+                                                    <input type="checkbox" id="import_data_confirm" required form="import-account-data-form">
+                                                </div>
+                                            </div>
+                                            <div class="fieldwrapper center">
+                                                <button type="submit" form="import-account-data-form" class="ui-button ui-corner-all ui-widget">{{ __('t_ingame.options.import_data_button') }}</button>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="textCenter">
                                         <input type="submit" class="btn_blue" value="{{ __('t_ingame.options.use_settings') }}">
                                     </div>
                                 </div>
                                 <div class="footer"></div>
+                            </form>
+                            <form method="post" enctype="multipart/form-data" id="import-account-data-form" action="{{ route('options.import') }}">
+                                {{ csrf_field() }}
                             </form>
                         </div>
                     </div>

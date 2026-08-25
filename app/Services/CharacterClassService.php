@@ -19,6 +19,12 @@ use OGame\Models\User;
 class CharacterClassService
 {
     /**
+     * Default Dark Matter cost to purchase the "all classes" bundle (one-time, non-recurring),
+     * used as a fallback when the "all_classes_cost" server setting has not been configured.
+     */
+    private const int DEFAULT_ALL_CLASSES_COST = 1500000;
+
+    /**
      * CharacterClassService constructor.
      *
      * @param DarkMatterService $darkMatterService
@@ -64,7 +70,7 @@ class CharacterClassService
      */
     public function isCollector(User $user): bool
     {
-        return $user->character_class === CharacterClass::COLLECTOR->value;
+        return $user->has_all_character_classes || $user->character_class === CharacterClass::COLLECTOR->value;
     }
 
     /**
@@ -75,7 +81,7 @@ class CharacterClassService
      */
     public function isGeneral(User $user): bool
     {
-        return $user->character_class === CharacterClass::GENERAL->value;
+        return $user->has_all_character_classes || $user->character_class === CharacterClass::GENERAL->value;
     }
 
     /**
@@ -86,7 +92,7 @@ class CharacterClassService
      */
     public function isDiscoverer(User $user): bool
     {
-        return $user->character_class === CharacterClass::DISCOVERER->value;
+        return $user->has_all_character_classes || $user->character_class === CharacterClass::DISCOVERER->value;
     }
 
     /**
@@ -172,6 +178,13 @@ class CharacterClassService
         $user->character_class = $newClass->value;
         $user->character_class_free_used = true;
         $user->character_class_changed_at = now();
+
+        // Selecting a single class replaces the all-classes bundle (mutually exclusive, no refund).
+        if ($user->has_all_character_classes) {
+            $user->has_all_character_classes = false;
+            $user->all_character_classes_changed_at = now();
+        }
+
         $user->save();
 
         // Reset crawler overload if switching away from Collector
@@ -204,6 +217,95 @@ class CharacterClassService
         $user->save();
 
         // Reset crawler overload when deactivating class
+        $this->resetCrawlerOverload($user);
+    }
+
+    /**
+     * Check if user has purchased the all-classes bundle.
+     *
+     * @param User $user
+     * @return bool
+     */
+    public function hasAllClasses(User $user): bool
+    {
+        return (bool) $user->has_all_character_classes;
+    }
+
+    /**
+     * Get the Dark Matter cost to purchase the all-classes bundle.
+     *
+     * @param User $user
+     * @return int
+     */
+    public function getAllClassesCost(User $user): int
+    {
+        return (int)$this->settingsService->get('all_classes_cost', self::DEFAULT_ALL_CLASSES_COST);
+    }
+
+    /**
+     * Purchase the all-classes bundle, granting Collector + General + Discoverer bonuses at once.
+     * Replaces any currently selected single class (no refund).
+     *
+     * @param User $user
+     * @return void
+     * @throws Exception
+     */
+    public function purchaseAllClasses(User $user): void
+    {
+        if ($user->has_all_character_classes) {
+            throw new Exception('All classes bundle is already active');
+        }
+
+        $cost = $this->getAllClassesCost($user);
+
+        if (!$this->darkMatterService->canAfford($user, $cost)) {
+            throw new Exception('Not enough Dark Matter to purchase all classes');
+        }
+
+        // Check if user has active fleet missions
+        if ($this->hasActiveFleetMissions($user)) {
+            throw new Exception('Cannot change character class while fleet missions are active. Please wait for all fleets to return.');
+        }
+
+        $this->darkMatterService->debit(
+            $user,
+            $cost,
+            DarkMatterTransactionType::ALL_CLASSES->value,
+            'Purchased all character classes bundle'
+        );
+
+        // Replace semantics: single-class selection becomes irrelevant.
+        $user->character_class = null;
+        $user->has_all_character_classes = true;
+        $user->all_character_classes_changed_at = now();
+        $user->save();
+
+        // No crawler overload reset needed: Collector's 150% overload is included in the bundle.
+    }
+
+    /**
+     * Deactivate the all-classes bundle.
+     *
+     * @param User $user
+     * @return void
+     * @throws Exception
+     */
+    public function deactivateAllClasses(User $user): void
+    {
+        if (!$user->has_all_character_classes) {
+            throw new Exception('All classes bundle is not active');
+        }
+
+        // Check if user has active fleet missions
+        if ($this->hasActiveFleetMissions($user)) {
+            throw new Exception('Cannot deactivate character class while fleet missions are active. Please wait for all fleets to return.');
+        }
+
+        $user->has_all_character_classes = false;
+        $user->all_character_classes_changed_at = now();
+        $user->save();
+
+        // Reset crawler overload since Collector's 150% overload is no longer available.
         $this->resetCrawlerOverload($user);
     }
 

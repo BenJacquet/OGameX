@@ -366,6 +366,14 @@ class BuildingQueueService
                 break;
             }
 
+            // The classic and lifeform building queues block each other on the Nanite
+            // Factory only (ideas/lifeforms.md 1.3): don't start a Nanite Factory
+            // upgrade while a lifeform building is in progress on this planet.
+            if ($object->machine_name === 'nano_factory'
+                && resolve(LifeformBuildingQueueService::class)->getCurrentlyBuilding($planet) !== null) {
+                break;
+            }
+
             $current_level = $planet->getObjectLevel($object->machine_name);
 
             // Sanity check: validate target level

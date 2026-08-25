@@ -3,10 +3,12 @@
 namespace OGame\GameMissions;
 
 use Exception;
+use Illuminate\Support\Arr;
 use OGame\Enums\DarkMatterTransactionType;
 use OGame\Enums\FleetMissionStatus;
 use OGame\Enums\FleetSpeedType;
 use OGame\Enums\HighscoreTypeEnum;
+use OGame\Enums\ItemType;
 use OGame\GameMessages\ExpeditionBattleAliens;
 use OGame\GameMessages\ExpeditionBattlePirates;
 use OGame\GameMessages\ExpeditionFailed;
@@ -38,6 +40,8 @@ use OGame\Models\User;
 use OGame\Services\CharacterClassService;
 use OGame\Services\DarkMatterService;
 use OGame\Services\DebrisFieldService;
+use OGame\Services\ItemService;
+use OGame\Services\LifeformService;
 use OGame\Services\MerchantService;
 use OGame\Services\NPCFleetGeneratorService;
 use OGame\Services\NPCPlanetService;
@@ -88,6 +92,21 @@ class ExpeditionMission extends GameMission
         if ($combatMultiplier < 1.0) {
             $weights['pirates'] *= $combatMultiplier;
             $weights['aliens'] *= $combatMultiplier;
+        }
+
+        // Apply Intergalactic Envoys (Humans lifeform capstone) bonus: reduced chance
+        // of combat encounters, same shape as the Discoverer class bonus above.
+        if ($mission->planet_id_from !== null) {
+            $originPlanet = $this->planetServiceFactory->make($mission->planet_id_from, true);
+            if ($originPlanet !== null) {
+                $lifeformService = app(LifeformService::class);
+                $lifeformCombatMultiplier = $lifeformService->getExpeditionEnemyChanceMultiplier($originPlanet, $player);
+
+                if ($lifeformCombatMultiplier < 1.0) {
+                    $weights['pirates'] *= $lifeformCombatMultiplier;
+                    $weights['aliens'] *= $lifeformCombatMultiplier;
+                }
+            }
         }
 
         return $weights;
@@ -597,11 +616,14 @@ class ExpeditionMission extends GameMission
         $player = $this->playerServiceFactory->make($mission->user_id, true);
 
         // Check if fleet has Pathfinder ships
-        // TODO: Pathfinder ship not yet implemented, uncomment when available
-        // $fleetUnits = $this->fleetMissionService->getFleetUnits(mission: $mission);
-        // $objectService = app(ObjectService::class);
-        // $hasPathfinder = $fleetUnits->hasUnit($objectService->getShipObjectByMachineName('pathfinder'));
-        $hasPathfinder = false;
+        $fleetUnits = $this->fleetMissionService->getFleetUnits(mission: $mission);
+        $objectService = app(ObjectService::class);
+        try {
+            $hasPathfinder = $fleetUnits->hasUnit($objectService->getShipObjectByMachineName('pathfinder'));
+        } catch (Exception $e) {
+            // Pathfinder not found in object service, skip bonus
+            $hasPathfinder = false;
+        }
 
         // Calculate Dark Matter reward
         $darkMatterService = app(DarkMatterService::class);
@@ -664,7 +686,18 @@ class ExpeditionMission extends GameMission
         // Load the mission owner user
         $player = $this->playerServiceFactory->make($mission->user_id, true);
 
-        // TODO: Implement actual item giving logic when items themselves are implemented.
+        // Grant a random item, weighted towards the more common lower tiers.
+        $tierRoll = rand(1, 100);
+        $tier = match (true) {
+            $tierRoll <= 70 => 'bronze',
+            $tierRoll <= 95 => 'silver',
+            default => 'gold',
+        };
+        $itemPool = array_values(array_filter(ItemType::cases(), fn (ItemType $type) => $type->getTierKey() === $tier));
+        $itemType = Arr::random($itemPool);
+
+        $itemService = app(ItemService::class);
+        $itemService->grant($player->getUser(), $itemType);
 
         // Send a message to the player with the item found outcome.
         $message_variation_id = ExpeditionGainItem::getRandomMessageVariationId();
@@ -1039,6 +1072,29 @@ class ExpeditionMission extends GameMission
     }
 
     /**
+     * Get the Intergalactic Envoys (Humans lifeform capstone) expedition resource-find
+     * multiplier for a mission's origin planet. Returns 1.0 (no effect) if the mission
+     * has no resolvable origin planet.
+     *
+     * @param FleetMission $mission
+     * @param PlayerService $player
+     * @return float
+     */
+    private function getLifeformExpeditionResourceMultiplier(FleetMission $mission, PlayerService $player): float
+    {
+        if ($mission->planet_id_from === null) {
+            return 1.0;
+        }
+
+        $originPlanet = $this->planetServiceFactory->make($mission->planet_id_from, true);
+        if ($originPlanet === null) {
+            return 1.0;
+        }
+
+        return app(LifeformService::class)->getExpeditionResourceMultiplier($originPlanet, $player);
+    }
+
+    /**
      * Get the max resource find based on the rank 1 highscore points.
      *
      * @param FleetMission $mission
@@ -1056,6 +1112,10 @@ class ExpeditionMission extends GameMission
         $economySpeed = $this->settings->economySpeed();
         $expeditionMultiplier = $characterClassService->getExpeditionResourceMultiplier($player->getUser(), $economySpeed);
         $resourceAmount = (int)($resourceAmount * $expeditionMultiplier);
+
+        // Apply Intergalactic Envoys (Humans lifeform capstone) bonus, stacked on top
+        // of the Discoverer class bonus above.
+        $resourceAmount = (int)($resourceAmount * $this->getLifeformExpeditionResourceMultiplier($mission, $player));
 
         // If the fleet contains a Pathfinder, double the max resource find
         $fleetUnits = $this->fleetMissionService->getFleetUnits(mission: $mission);
@@ -1093,6 +1153,10 @@ class ExpeditionMission extends GameMission
         $economySpeed = $this->settings->economySpeed();
         $expeditionMultiplier = $characterClassService->getExpeditionResourceMultiplier($player->getUser(), $economySpeed);
         $resourceAmount = (int)($resourceAmount * $expeditionMultiplier);
+
+        // Apply Intergalactic Envoys (Humans lifeform capstone) bonus, stacked on top
+        // of the Discoverer class bonus above.
+        $resourceAmount = (int)($resourceAmount * $this->getLifeformExpeditionResourceMultiplier($mission, $player));
 
         // If the fleet contains a Pathfinder, double the max ship find
         $fleetUnits = $this->fleetMissionService->getFleetUnits(mission: $mission);

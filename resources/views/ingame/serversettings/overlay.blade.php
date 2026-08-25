@@ -76,10 +76,10 @@
 @if($dark_matter_regen_enabled)
 <div class="technology-fullrow" style="z-index: 2 !important;">
     <server-settings-icon sq28 bordered class="darkmatter_bonus"></server-settings-icon>
-    <span>@lang('Dark Matter regeneration amount:') {{ number_format($dark_matter_regen_amount) }}</span>
+    <span>@lang('Dark Matter regeneration rate:') {{ number_format($dark_matter_regen_amount) }} @lang('per') {{ number_format($dark_matter_regen_period / 86400) }} @lang('days')</span>
 </div>
 <div class="technology-fullrow" style="z-index: 2 !important;">
     <server-settings-icon sq28 bordered class="darkmatter_bonus"></server-settings-icon>
-    <span>@lang('Dark Matter regeneration period:') {{ number_format($dark_matter_regen_period / 86400) }} @lang('days')</span>
+    <span>@lang('Dark Matter trickles in continuously at this rate, rather than being paid out all at once.')</span>
 </div>
 @endif

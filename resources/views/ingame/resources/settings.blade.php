@@ -409,6 +409,44 @@
                         </tr>
                         <tr class="">
                             <td class="label">
+                                {{ __('t_ingame.resource_settings.alliance_class') }}
+                            </td>
+                            <td>
+                                @php
+                                    $userAllianceClass = app(\OGame\Services\AllianceClassService::class)->getAllianceClassForUser($currentPlayer->getUser());
+                                    $hasAllianceClass = $userAllianceClass !== null;
+                                    $allianceClassIcon = $hasAllianceClass ? $userAllianceClass->getMachineName() : 'noclass';
+                                    $allianceClassTooltip = $hasAllianceClass ? $userAllianceClass->getName() : 'No alliance class selected';
+                                @endphp
+                                <div class="tooltipCustom sprite allianceclass small {{ $allianceClassIcon }} {{ $hasAllianceClass ? '' : 'grayscale' }}"
+                                     title="{{ $allianceClassTooltip }}">
+                                </div>
+                            </td>
+                            <td class="{{ $production_total->alliance_class->metal->get() > 0 ? 'undermark' : 'normalmark' }}">
+                                <span class="tooltipCustom {{ $hasAllianceClass ? '' : 'disabled' }}" title="{{ $production_total->alliance_class->metal->getFormattedFull() }}">
+                                    {{ $production_total->alliance_class->metal->getFormattedLong() }}
+                                </span>
+                            </td>
+                            <td class="{{ $production_total->alliance_class->crystal->get() > 0 ? 'undermark' : 'normalmark' }}">
+                                <span class="tooltipCustom {{ $hasAllianceClass ? '' : 'disabled' }}" title="{{ $production_total->alliance_class->crystal->getFormattedFull() }}">
+                                    {{ $production_total->alliance_class->crystal->getFormattedLong() }}
+                                </span>
+                            </td>
+                            <td class="{{ $production_total->alliance_class->deuterium->get() > 0 ? 'undermark' : 'normalmark' }}">
+                                <span class="tooltipCustom {{ $hasAllianceClass ? '' : 'disabled' }}" title="{{ $production_total->alliance_class->deuterium->getFormattedFull() }}">
+                                    {{ $production_total->alliance_class->deuterium->getFormattedLong() }}
+                                </span>
+                            </td>
+                            <td class="{{ $production_total->alliance_class->energy->get() > 0 ? 'undermark' : 'normalmark' }}">
+                                <span class="tooltipCustom {{ $hasAllianceClass ? '' : 'disabled' }}" title="{{ $production_total->alliance_class->energy->getFormattedFull() }}">
+                                    {{ $production_total->alliance_class->energy->getFormattedLong() }}
+                                </span>
+                            </td>
+                            <td>
+                            </td>
+                        </tr>
+                        <tr class="alt">
+                            <td class="label">
                                 {{ __('t_ingame.resource_settings.commanding_staff') }}
                             </td>
                             <td>

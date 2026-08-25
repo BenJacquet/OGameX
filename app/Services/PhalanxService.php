@@ -5,6 +5,7 @@ namespace OGame\Services;
 use OGame\Factories\GameMissionFactory;
 use OGame\Factories\PlayerServiceFactory;
 use OGame\GameObjects\Models\Units\UnitCollection;
+use OGame\Models\Enums\PlanetType;
 use OGame\Models\FleetMission;
 use OGame\Models\Planet;
 use OGame\Models\Planet\Coordinate;
@@ -287,6 +288,41 @@ class PhalanxService
         }
 
         return $scan_results;
+    }
+
+    /**
+     * Scan every populated, scannable planet in a system for fleet movements (Researcher alliance class bonus).
+     *
+     * Reuses scanPlanetFleets() per planet and merges the results, deduplicated by mission ID.
+     *
+     * @param int $galaxy The target galaxy.
+     * @param int $system The target system.
+     * @param int $scanner_player_id The player ID performing the scan.
+     * @return array<int, array<string, mixed>> Array of fleet mission details across the whole system.
+     */
+    public function scanSystemFleets(int $galaxy, int $system, int $scanner_player_id): array
+    {
+        $target_planets = Planet::where('galaxy', $galaxy)
+            ->where('system', $system)
+            ->where('planet_type', PlanetType::Planet->value)
+            ->whereNotNull('user_id')
+            ->where('user_id', '!=', $scanner_player_id)
+            ->get();
+
+        $scan_results = [];
+
+        foreach ($target_planets as $target_planet) {
+            $owner = $this->playerServiceFactory->make($target_planet->user_id, true);
+            if ($owner->isAdmin()) {
+                continue;
+            }
+
+            foreach ($this->scanPlanetFleets($target_planet->id, $scanner_player_id) as $result) {
+                $scan_results[$result['mission_id']] = $result;
+            }
+        }
+
+        return array_values($scan_results);
     }
 
     /**

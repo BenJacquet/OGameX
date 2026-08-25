@@ -13,6 +13,75 @@ use OGame\Services\SettingsService;
 class ServerSettingsController extends OGameController
 {
     /**
+     * Default values for all settings on the server settings page, mirroring the
+     * fallback values used in SettingsService. Used to power the "reset to
+     * defaults" buttons in the UI.
+     *
+     * @var array<string, string|int|float>
+     */
+    private const DEFAULTS = [
+        'universe_name' => 'Universe',
+        'economy_speed' => 10,
+        'research_speed' => 10,
+        'fleet_speed_war' => 10,
+        'fleet_speed_holding' => 10,
+        'fleet_speed_peaceful' => 10,
+        'planet_fields_bonus' => 30,
+        'basic_income_metal' => 30,
+        'basic_income_crystal' => 15,
+        'basic_income_deuterium' => 0,
+        'basic_income_energy' => 0,
+        'registration_planet_amount' => 1,
+        'dark_matter_bonus' => 8000,
+        'dark_matter_regen_enabled' => 0,
+        'dark_matter_regen_amount' => 100,
+        'dark_matter_regen_period' => 3600,
+        'planet_relocation_cost' => 240000,
+        'planet_relocation_duration' => 60,
+        'commanding_staff_cost_per_week' => 10000,
+        'alliance_cooldown_days' => 3,
+        'alliance_class_change_cost' => 400000,
+        'all_classes_cost' => 1500000,
+        'battle_engine' => 'rust',
+        'alliance_combat_system_on' => 1,
+        'debris_field_from_ships' => 100,
+        'debris_field_from_defense' => 100,
+        'debris_field_deuterium_on' => 1,
+        'wreck_field_min_resources_loss' => 150000,
+        'wreck_field_min_fleet_percentage' => 5,
+        'wreck_field_lifetime_hours' => 72,
+        'wreck_field_repair_max_hours' => 12,
+        'wreck_field_repair_min_minutes' => 30,
+        'maximum_moon_chance' => 100,
+        'hamill_probability' => 1000,
+        'bonus_expedition_slots' => 0,
+        'expedition_reward_multiplier_resources' => 1.0,
+        'expedition_reward_multiplier_ships' => 1.0,
+        'expedition_reward_multiplier_dark_matter' => 1.0,
+        'expedition_reward_multiplier_items' => 1.0,
+        'expedition_weight_ships' => 17,
+        'expedition_weight_resources' => 35,
+        'expedition_weight_delay' => 7.5,
+        'expedition_weight_speedup' => 2.75,
+        'expedition_weight_nothing' => 25,
+        'expedition_weight_black_hole' => 0.2,
+        'expedition_weight_pirates' => 3,
+        'expedition_weight_aliens' => 1.5,
+        'expedition_weight_dark_matter' => 7.5,
+        'expedition_weight_merchant' => 0.4,
+        'expedition_weight_items' => 0,
+        'highscore_admin_visible' => 0,
+        'ignore_empty_systems_on' => 0,
+        'ignore_inactive_systems_on' => 0,
+        'number_of_galaxies' => 9,
+        'npc_base_count_per_galaxy' =>460,
+        'npc_base_respawn_hours' => 24,
+        'npc_base_difficulty_multiplier' => 1.0,
+        'npc_base_weekly_escalation_pct' => 3.0,
+        'npc_base_garrison_variance_pct' => 15,
+    ];
+
+    /**
      * Shows the server settings page.
      *
      * @param PlayerService $player
@@ -22,6 +91,7 @@ class ServerSettingsController extends OGameController
     public function index(PlayerService $player, SettingsService $settingsService): View
     {
         return view('ingame.admin.serversettings')->with([
+            'defaults' => self::DEFAULTS,
             'fleet_speed_war' => $settingsService->fleetSpeedWar(),
             'fleet_speed_holding' => $settingsService->fleetSpeedHolding(),
             'fleet_speed_peaceful' => $settingsService->fleetSpeedPeaceful(),
@@ -37,6 +107,8 @@ class ServerSettingsController extends OGameController
             'dark_matter_bonus' => $settingsService->darkMatterBonus(),
             'alliance_combat_system_on' => $settingsService->allianceCombatSystemOn(),
             'alliance_cooldown_days' => $settingsService->allianceCooldownDays(),
+            'alliance_class_change_cost' => (int)$settingsService->get('alliance_class_change_cost', 400000),
+            'all_classes_cost' => (int)$settingsService->get('all_classes_cost', 1500000),
             'debris_field_from_ships' => $settingsService->debrisFieldFromShips(),
             'debris_field_from_defense' => $settingsService->debrisFieldFromDefense(),
             'debris_field_deuterium_on' => $settingsService->debrisFieldDeuteriumOn(),
@@ -55,6 +127,7 @@ class ServerSettingsController extends OGameController
             'dark_matter_regen_period' => (int)$settingsService->get('dark_matter_regen_period', 604800),
             'planet_relocation_cost' => (int)$settingsService->get('planet_relocation_cost', 240000),
             'planet_relocation_duration' => (int)$settingsService->get('planet_relocation_duration', 86400),
+            'commanding_staff_cost_per_week' => (int)$settingsService->get('commanding_staff_cost_per_week', 42500),
             'bonus_expedition_slots' => $settingsService->bonusExpeditionSlots(),
             'expedition_reward_multiplier_resources' => $settingsService->expeditionRewardMultiplierResources(),
             'expedition_reward_multiplier_ships' => $settingsService->expeditionRewardMultiplierShips(),
@@ -73,6 +146,11 @@ class ServerSettingsController extends OGameController
             'expedition_weight_items' => $settingsService->expeditionWeightItems(),
             'hamill_probability' => $settingsService->hamillManoeuvreChance(),
             'highscore_admin_visible' => $settingsService->highscoreAdminVisible(),
+            'npc_base_count_per_galaxy' => $settingsService->npcBaseCountPerGalaxy(),
+            'npc_base_respawn_hours' => $settingsService->npcBaseRespawnHours(),
+            'npc_base_difficulty_multiplier' => $settingsService->npcBaseDifficultyMultiplier(),
+            'npc_base_weekly_escalation_pct' => $settingsService->npcBaseWeeklyEscalationPct(),
+            'npc_base_garrison_variance_pct' => $settingsService->npcBaseGarrisonVariancePct(),
         ]);
     }
 
@@ -101,6 +179,8 @@ class ServerSettingsController extends OGameController
         $settingsService->set('dark_matter_bonus', request('dark_matter_bonus'));
         $settingsService->set('alliance_combat_system_on', request('alliance_combat_system_on', 0));
         $settingsService->set('alliance_cooldown_days', request('alliance_cooldown_days', 3));
+        $settingsService->set('alliance_class_change_cost', request('alliance_class_change_cost', 400000));
+        $settingsService->set('all_classes_cost', request('all_classes_cost', 1500000));
         $settingsService->set('debris_field_from_ships', request('debris_field_from_ships'));
         $settingsService->set('debris_field_from_defense', request('debris_field_from_defense'));
         $settingsService->set('debris_field_deuterium_on', request('debris_field_deuterium_on', 0));
@@ -122,6 +202,7 @@ class ServerSettingsController extends OGameController
         $settingsService->set('dark_matter_regen_period', request('dark_matter_regen_period', 604800));
         $settingsService->set('planet_relocation_cost', request('planet_relocation_cost', 240000));
         $settingsService->set('planet_relocation_duration', request('planet_relocation_duration', 86400));
+        $settingsService->set('commanding_staff_cost_per_week', request('commanding_staff_cost_per_week', 42500));
 
         $settingsService->set('bonus_expedition_slots', request('bonus_expedition_slots', 0));
         $settingsService->set('expedition_reward_multiplier_resources', request('expedition_reward_multiplier_resources', 1.0));
@@ -143,6 +224,12 @@ class ServerSettingsController extends OGameController
         $settingsService->set('hamill_manoeuvre_chance', max(1, (int)request('hamill_probability', 1000)));
 
         $settingsService->set('highscore_admin_visible', request('highscore_admin_visible', 0));
+
+        $settingsService->set('npc_base_count_per_galaxy', request('npc_base_count_per_galaxy', 160));
+        $settingsService->set('npc_base_respawn_hours', request('npc_base_respawn_hours', 18));
+        $settingsService->set('npc_base_difficulty_multiplier', request('npc_base_difficulty_multiplier', 1.0));
+        $settingsService->set('npc_base_weekly_escalation_pct', request('npc_base_weekly_escalation_pct', 3.0));
+        $settingsService->set('npc_base_garrison_variance_pct', request('npc_base_garrison_variance_pct', 15));
 
         // Clear highscore cache when admin visibility setting changes
         $this->clearHighscoreCache();

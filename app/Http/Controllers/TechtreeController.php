@@ -10,6 +10,7 @@ use OGame\GameObjects\Models\Calculations\CalculationType;
 use OGame\GameObjects\Models\Enums\GameObjectType;
 use OGame\GameObjects\Models\Techtree\TechtreeRequiredBy;
 use OGame\GameObjects\Models\Techtree\TechtreeRequirement;
+use OGame\Services\DarkMatterService;
 use OGame\Services\ObjectService;
 use OGame\Services\PlanetService;
 use OGame\Services\PlayerService;
@@ -113,27 +114,44 @@ class TechtreeController extends OGameController
 
         $production_table = [];
         if (!empty($object->production)) {
-            $test_production = $planet->getObjectProduction($object->machine_name, 1, true);
-            $resource_type = null;
+            // Dark Matter Factory's output isn't part of the per-planet resource system
+            // (getObjectProduction), so it's computed separately via DarkMatterService.
+            // Energy consumption still comes from the standard pipeline below since that
+            // formula IS registered normally.
+            $is_dark_matter_factory = $object->machine_name === 'dark_matter_factory';
+            $darkMatterService = $is_dark_matter_factory ? resolve(DarkMatterService::class) : null;
 
-            if ($test_production->metal->get() > 0) {
-                $resource_type = 'metal';
-            } elseif ($test_production->crystal->get() > 0) {
-                $resource_type = 'crystal';
-            } elseif ($test_production->deuterium->get() > 0) {
-                $resource_type = 'deuterium';
-            } elseif ($test_production->energy->get() > 0) {
-                $resource_type = 'energy';
+            $resource_type = null;
+            if (!$is_dark_matter_factory) {
+                $test_production = $planet->getObjectProduction($object->machine_name, 1, true);
+
+                if ($test_production->metal->get() > 0) {
+                    $resource_type = 'metal';
+                } elseif ($test_production->crystal->get() > 0) {
+                    $resource_type = 'crystal';
+                } elseif ($test_production->deuterium->get() > 0) {
+                    $resource_type = 'deuterium';
+                } elseif ($test_production->energy->get() > 0) {
+                    $resource_type = 'energy';
+                }
             }
 
-            $production_amount_current_level = $resource_type ? $planet->getObjectProduction($object->machine_name, $current_level, true)->{$resource_type}->get() : 0;
+            $production_amount_current_level = $darkMatterService
+                ? $darkMatterService->getFactoryProductionPerHour($planet, $current_level)
+                : ($resource_type ? $planet->getObjectProduction($object->machine_name, $current_level, true)->{$resource_type}->get() : 0);
 
             // Create production table array value
             $min_level = (($current_level - 2) > 1) ? $current_level - 2 : 1;
             for ($i = $min_level; $i < $min_level + 15; $i++) {
                 $production_resources = $planet->getObjectProduction($object->machine_name, $i, true);
-                $production_amount_previous_level = $resource_type ? $planet->getObjectProduction($object->machine_name, $i - 1, true)->{$resource_type}->get() : 0;
-                $production_amount = $resource_type ? $production_resources->{$resource_type}->get() : 0;
+
+                if ($darkMatterService) {
+                    $production_amount_previous_level = $darkMatterService->getFactoryProductionPerHour($planet, $i - 1);
+                    $production_amount = $darkMatterService->getFactoryProductionPerHour($planet, $i);
+                } else {
+                    $production_amount_previous_level = $resource_type ? $planet->getObjectProduction($object->machine_name, $i - 1, true)->{$resource_type}->get() : 0;
+                    $production_amount = $resource_type ? $production_resources->{$resource_type}->get() : 0;
+                }
 
                 $production_table[] = [
                     'level' => $i,

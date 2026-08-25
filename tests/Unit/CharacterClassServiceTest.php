@@ -472,4 +472,205 @@ class CharacterClassServiceTest extends TestCase
         // Attempt to deselect class should fail
         $this->characterClassService->deselectClass($user);
     }
+
+    // ==================== All Classes Bundle Tests ====================
+
+    public function testHasAllClassesFalseByDefault(): void
+    {
+        $user = new User();
+
+        $this->assertFalse($this->characterClassService->hasAllClasses($user));
+    }
+
+    public function testAllClassesFlagMakesAllThreeTrue(): void
+    {
+        $user = new User();
+        $user->has_all_character_classes = true;
+
+        $this->assertTrue($this->characterClassService->isCollector($user));
+        $this->assertTrue($this->characterClassService->isGeneral($user));
+        $this->assertTrue($this->characterClassService->isDiscoverer($user));
+    }
+
+    public function testAllClassesFlagOverridesSingleClassValue(): void
+    {
+        $user = new User();
+        $user->character_class = CharacterClass::GENERAL->value;
+        $user->has_all_character_classes = true;
+
+        // Even though a single class is also set, the bundle overrides it.
+        $this->assertTrue($this->characterClassService->isCollector($user));
+        $this->assertTrue($this->characterClassService->isGeneral($user));
+        $this->assertTrue($this->characterClassService->isDiscoverer($user));
+    }
+
+    public function testAllClassesBonusesApplyForEachClass(): void
+    {
+        $user = new User();
+        $user->has_all_character_classes = true;
+
+        // Collector-only bonus.
+        $this->assertEquals(1.25, $this->characterClassService->getMineProductionBonus($user));
+        $this->assertEquals(150, $this->characterClassService->getMaxCrawlerOverload($user));
+
+        // General-only bonus.
+        $this->assertEquals(2.0, $this->characterClassService->getCombatShipSpeedBonus($user));
+
+        // Discoverer-only bonus.
+        $this->assertEquals(0.75, $this->characterClassService->getResearchTimeMultiplier($user));
+    }
+
+    public function testGetAllClassesCost(): void
+    {
+        $service = app(CharacterClassService::class);
+        $user = new User();
+
+        $this->assertEquals(1500000, $service->getAllClassesCost($user));
+    }
+
+    public function testGetAllClassesCostReadFromSettings(): void
+    {
+        $service = app(CharacterClassService::class);
+        $user = new User();
+
+        resolve(\OGame\Services\SettingsService::class)->set('all_classes_cost', 2000000);
+
+        $this->assertEquals(2000000, $service->getAllClassesCost($user));
+    }
+
+    public function testPurchaseAllClassesDebitsDarkMatterAndCreatesTransaction(): void
+    {
+        $service = app(CharacterClassService::class);
+
+        $user = User::factory()->create([
+            'character_class' => CharacterClass::COLLECTOR->value,
+            'character_class_free_used' => true,
+        ]);
+        $user->dark_matter = 2000000;
+        $user->save();
+        $user->refresh();
+        $balanceBefore = $user->dark_matter;
+
+        $service->purchaseAllClasses($user);
+
+        $user->refresh();
+        $this->assertTrue((bool)$user->has_all_character_classes);
+        $this->assertNull($user->character_class);
+        $this->assertEquals($balanceBefore - 1500000, $user->dark_matter);
+
+        $this->assertDatabaseHas('dark_matter_transactions', [
+            'user_id' => $user->id,
+            'type' => 'all_classes',
+            'amount' => -1500000,
+        ]);
+    }
+
+    public function testPurchaseAllClassesThrowsWhenInsufficientDarkMatter(): void
+    {
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Not enough Dark Matter to purchase all classes');
+
+        $service = app(CharacterClassService::class);
+
+        $user = User::factory()->create([
+            'dark_matter' => 100,
+        ]);
+
+        $service->purchaseAllClasses($user);
+    }
+
+    public function testPurchaseAllClassesThrowsWhenAlreadyActive(): void
+    {
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('All classes bundle is already active');
+
+        $service = app(CharacterClassService::class);
+
+        $user = User::factory()->create([
+            'dark_matter' => 2000000,
+            'has_all_character_classes' => true,
+        ]);
+
+        $service->purchaseAllClasses($user);
+    }
+
+    public function testPurchaseAllClassesThrowsWhenFleetMissionsActive(): void
+    {
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('Cannot change character class while fleet missions are active');
+
+        $service = app(CharacterClassService::class);
+
+        $user = User::factory()->create([
+            'dark_matter' => 2000000,
+        ]);
+
+        $mission = new \OGame\Models\FleetMission();
+        $mission->user_id = $user->id;
+        $mission->processed = 0;
+        $mission->time_departure = time();
+        $mission->time_arrival = time() + 3600;
+        $mission->mission_type = 3;
+        $mission->save();
+
+        $service->purchaseAllClasses($user);
+    }
+
+    public function testDeactivateAllClassesResetsCrawlerOverloadAndClearsFlag(): void
+    {
+        $service = app(CharacterClassService::class);
+
+        $user = User::factory()->create([
+            'dark_matter' => 2000000,
+            'has_all_character_classes' => true,
+        ]);
+
+        $coords = $this->getSafeEmptyCoordinate(new \OGame\Models\Planet\Coordinate(1, 1, 1));
+        $planet = \OGame\Models\Planet::factory()->create([
+            'user_id' => $user->id,
+            'galaxy' => $coords->galaxy,
+            'system' => $coords->system,
+            'planet' => $coords->position,
+            'crawler_percent' => 15,
+        ]);
+
+        $service->deactivateAllClasses($user);
+
+        $user->refresh();
+        $this->assertFalse((bool)$user->has_all_character_classes);
+
+        $planet->refresh();
+        $this->assertEquals(10, $planet->crawler_percent);
+    }
+
+    public function testDeactivateAllClassesThrowsWhenNotActive(): void
+    {
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('All classes bundle is not active');
+
+        $service = app(CharacterClassService::class);
+
+        $user = User::factory()->create([
+            'dark_matter' => 2000000,
+        ]);
+
+        $service->deactivateAllClasses($user);
+    }
+
+    public function testSelectClassClearsAllClassesFlag(): void
+    {
+        $service = app(CharacterClassService::class);
+
+        $user = User::factory()->create([
+            'dark_matter' => 2000000,
+            'has_all_character_classes' => true,
+            'character_class_free_used' => true,
+        ]);
+
+        $service->selectClass($user, CharacterClass::GENERAL);
+
+        $user->refresh();
+        $this->assertFalse((bool)$user->has_all_character_classes);
+        $this->assertEquals(CharacterClass::GENERAL->value, $user->character_class);
+    }
 }

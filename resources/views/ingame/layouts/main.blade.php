@@ -240,30 +240,29 @@
                     </span>
                     </div>
                 </div>
-                <!-- <div class="resource_tile population">
+                <div class="resource_tile population">
                     <div id="population_box" class="population tooltipHTML resource ipiHintable tpd-hideOnClickOutside"
-                         title="Population|<table class=&quot;resourceTooltip&quot;><tr><th>Available:</th><td><span class=&quot;overmark&quot;>100</span></td></tr><tr><th>Living Space
-</th><td><span class=&quot;overmark&quot;>0</span></td></tr><tr><th>Satisfied</th><td><span class=&quot;undermark&quot;>0</span></td></tr><tr><th>Hungry</th><td><span class=&quot;overmark&quot;>0</span></td></tr><tr><th>Growth rate</th><td><span class=&quot;&quot;>±0</span></td></tr><tr><th>Bunker Space
-</th><td><span class=&quot;middlemark&quot;>100</span></td></tr></table>" data-ipi-hint="ipiResourcepopulation">
+                         title="{{ __('t_ingame.layout.res_population') }}|<table class=&quot;resourceTooltip&quot;><tr><th>{{ __('t_ingame.layout.res_available') }}:</th><td><span class=&quot;&quot;>{!! $resources['population']['amount_formatted'] !!}</span></td></tr><tr><th>{{ __('t_ingame.layout.res_storage_capacity') }}</th><td><span class=&quot;&quot;>{!! $resources['population']['storage_formatted'] !!}</span></td></tr></table>"
+                         data-ipi-hint="ipiResourcepopulation">
                         <div class="resourceIcon population"></div>
                         <span class="value">
-                        <span id="resources_population" data-raw="100" class="overmark">100</span>
+                        <span id="resources_population" data-raw="{!! $resources['population']['amount'] !!}">{!! $resources['population']['amount_formatted'] !!}</span>
                     </span>
                     </div>
                 </div>
                 <div class="resource_tile food">
                     <div id="food_box" class="food tooltipHTML resource ipiHintable tpd-hideOnClickOutside"
-                         title="Food|<table class=&quot;resourceTooltip&quot;><tr><th>Available:</th><td><span class=&quot;overmark&quot;>0</span></td></tr><tr><th>Storage capacity</th><td><span class=&quot;overmark&quot;>0</span></td></tr><tr><th>Overproduction</th><td><span class=&quot;undermark&quot;>0</span></td></tr><tr><th>Consumption</th><td><span class=&quot;overmark&quot;>0</span></td></tr><tr><th>Consumed in</th><td><span class=&quot;overmark timeTillFoodRunsOut&quot;>~</span></td></tr></table>"
+                         title="{{ __('t_ingame.layout.res_food') }}|<table class=&quot;resourceTooltip&quot;><tr><th>{{ __('t_ingame.layout.res_available') }}:</th><td><span class=&quot;&quot;>{!! $resources['food']['amount_formatted'] !!}</span></td></tr><tr><th>{{ __('t_ingame.layout.res_storage_capacity') }}</th><td><span class=&quot;&quot;>{!! $resources['food']['storage_formatted'] !!}</span></td></tr></table>"
                          data-ipi-hint="ipiResourcefood">
                         <div class="resourceIcon food"></div>
                         <span class="value">
-                        <span id="resources_food" data-raw="0" class="overmark">0</span>
+                        <span id="resources_food" data-raw="{!! $resources['food']['amount'] !!}">{!! $resources['food']['amount_formatted'] !!}</span>
                     </span>
                     </div>
-                </div> -->
+                </div>
                 <div class="resource_tile darkmatter">
                     <div id="darkmatter_box" class="darkmatter tooltipHTML resource ipiHintable tpd-hideOnClickOutside"
-                         title="{{ __('t_ingame.layout.res_dark_matter') }}|<table class=&quot;resourceTooltip&quot;><tr><th>{{ __('t_ingame.layout.res_available') }}:</th><td><span class=&quot;&quot;>{!! $resources['darkmatter']['amount_formatted'] !!}</span></td></tr></table>"
+                         title="{{ __('t_ingame.layout.res_dark_matter') }}|<table class=&quot;resourceTooltip&quot;><tr><th>{{ __('t_ingame.layout.res_available') }}:</th><td><span class=&quot;&quot;>{!! $resources['darkmatter']['amount_formatted'] !!}</span></td></tr><tr><th>{{ __('t_ingame.layout.res_current_production') }}:</th><td><span class=&quot;@if ($resources['darkmatter']['production_hour'] <= 0) overmark @else undermark @endif&quot;>@if ($resources['darkmatter']['production_hour'] > 0)+@endif{!! $resources['darkmatter']['production_hour_formatted'] !!}</span></td></tr></table>"
                          data-tooltip-button="{{ __('t_ingame.layout.res_purchase_dm') }}" data-ipi-hint="ipiResourcedarkmatter">
                         <a href="#TODO_page=payment" class="overlay">
                             <img src="/img/icons/401d1a91ff40dc7c8acfa4377d3d65.gif">
@@ -277,13 +276,13 @@
             </div>
         </div>
         <div id="commandercomponent" class="">
-            <!-- <div id="lifeform" class="fleft">
-                <a href="#TODO_page=ingame&amp;component=lfsettings" class="tooltipHTML js_hideTipOnMobile ipiHintable"
-                   title="Lifeform|No lifeforms
-" data-ipi-hint="ipiLifeformSettings">
-                    <div class="resourceIcon population"></div>
+            <div id="lifeform" class="fleft">
+                <a href="{{ route('lifeform.index') }}" class="tooltipHTML js_hideTipOnMobile ipiHintable"
+                   title="{{ __('t_ingame.layout.res_lifeform_link', ['name' => $currentPlanetLifeform->getName()]) }}"
+                   data-ipi-hint="ipiLifeformSettings">
+                    <div class="lifeform-item-icon lifeform{{ $currentPlanetLifeform->value }}"></div>
                 </a>
-            </div> -->
+            </div>
             <div id="characterclass" class="fleft">
                 @php
                     $userClass = $currentPlayer->getUser()->getCharacterClassEnum();
@@ -565,6 +564,19 @@
                            target="_self"
                         >
                             <span class="textlabel">{{ __('t_ingame.layout.menu_facilities') }}</span>
+                        </a>
+                    </li>
+
+                    <li>
+                        <span class="menu_icon">
+                            <div class="menuImage research {{(Request::is('lifeform') ? 'highlighted' : '') }}"></div>
+                        </span>
+                        <a class="menubutton {{(Request::is('lifeform') ? 'selected' : '') }}"
+                           href="{{ route('lifeform.index') }}"
+                           accesskey=""
+                           target="_self"
+                        >
+                            <span class="textlabel">{{ __('t_ingame.layout.menu_lifeform') }}</span>
                         </a>
                     </li>
 
@@ -1370,7 +1382,7 @@ However, the Space Dock's engineers think that some of the remains can be salvag
                         //     "capableToFeed": 0,
                         //     "needFood": 0,
                         //     "singleFoodConsumption": 0,
-                        //     "tooltip": "@lang('Population')|<table class=\"resourceTooltip\"><tr><th>{{ __('t_ingame.layout.res_available') }}:<\/th><td><span class=\"overmark\">100<\/span><\/td><\/tr><tr><th>@lang('Living Space')\n<\/th><td><span class=\"overmark\">0<\/span><\/td><\/tr><tr><th>@lang('Satisfied')<\/th><td><span class=\"undermark\">0<\/span><\/td><\/tr><tr><th>@lang('Hungry')<\/th><td><span class=\"overmark\">0<\/span><\/td><\/tr><tr><th>@lang('Growth rate')<\/th><td><span class=\"\">\u00b10<\/span><\/td><\/tr><tr><th>@lang('Bunker Space')\n<\/th><td><span class=\"middlemark\">100<\/span><\/td><\/tr><\/table>",
+                        //     "tooltip": "@lang('Population')|<table class=\"resourceTooltip\"><tr><th>{{ __('t_ingame.layout.res_available') }}:<\/th><td><span class=\"overmark\">100<\/span><\/td><\/tr><tr><th>@lang('Living Space')\n<\/th><td><span class=\"overmark\">0<\/span><\/td><\/tr><tr><th>@lang('Satisfied')<\/th><td><span class=\"undermark\">0<\/span><\/td><\/tr><tr><th>@lang('Hungry')<\/th><td><span class=\"overmark\">0<\/span><\/td><\/tr><tr><th>@lang('Growth rate')<\/th><td><span class=\"\">±0<\/span><\/td><\/tr><tr><th>@lang('Bunker Space')\n<\/th><td><span class=\"middlemark\">100<\/span><\/td><\/tr><\/table>",
                         //     "classesListItem": ""
                         // },
                         // "food": {
@@ -1418,7 +1430,8 @@ However, the Space Dock's engineers think that some of the remains can be salvag
                         },
                         "darkmatter": {
                             "amount": {!! $resources['darkmatter']['amount'] !!},
-                            "tooltip": "{{ __('t_ingame.layout.res_dark_matter') }}|<table class=\"resourceTooltip\"><tr><th>{{ __('t_ingame.layout.res_available') }}:<\/th><td><span class=\"\">{!! $resources['darkmatter']['amount_formatted'] !!}<\/span><\/td><\/tr><\/table>",
+                            "production": {!! $resources['darkmatter']['production_second'] !!},
+                            "tooltip": "{{ __('t_ingame.layout.res_dark_matter') }}|<table class=\"resourceTooltip\"><tr><th>{{ __('t_ingame.layout.res_available') }}:<\/th><td><span class=\"\">{!! $resources['darkmatter']['amount_formatted'] !!}<\/span><\/td><\/tr><tr><th>{{ __('t_ingame.layout.res_current_production') }}:<\/th><td><span class=\"@if ($resources['darkmatter']['production_hour'] <= 0) overmark @else undermark @endif\">@if ($resources['darkmatter']['production_hour'] > 0)+@endif{!! $resources['darkmatter']['production_hour_formatted'] !!}<\/span><\/td><\/tr><\/table>",
                             "classesListItem": "",
                             "classes": "overlay",
                             "link": "#TODO_page=payment",

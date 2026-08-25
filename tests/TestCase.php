@@ -4,6 +4,7 @@ namespace Tests;
 
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\DB;
 use OGame\Models\Planet\Coordinate;
@@ -11,6 +12,8 @@ use OGame\Services\SettingsService;
 
 abstract class TestCase extends BaseTestCase
 {
+    use RefreshDatabase;
+
     /**
      * Creates the application.
      *

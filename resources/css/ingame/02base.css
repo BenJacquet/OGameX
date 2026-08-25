@@ -414,6 +414,14 @@ div.buildingimg {
     background-position: 10.52% 0;
 }
 
+/* Dark Matter Factory isn't part of the original sprite sheet (new building), so until real
+   artwork exists it reuses the Jump Gate's icon (same sheet, same crop) as a placeholder. */
+.sprite_before.darkMatterFactory::before,
+.sprite_after.darkMatterFactory::after,
+.sprite.darkMatterFactory {
+    background-position: 47.36% 17.24%;
+}
+
 .sprite_before.solarPlant::before,
 .sprite_after.solarPlant::after,
 .sprite.solarPlant {

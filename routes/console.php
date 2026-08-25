@@ -1,12 +1,14 @@
 <?php
 
 use OGame\Console\Commands\Scheduler\CleanupWreckFields;
-use OGame\Console\Commands\Scheduler\DarkMatterRegenerateCommand;
 use OGame\Console\Commands\Scheduler\DeleteOldMessages;
+use OGame\Console\Commands\Scheduler\EscalateNpcBaseDifficulty;
 use OGame\Console\Commands\Scheduler\GenerateAllianceHighscores;
 use OGame\Console\Commands\Scheduler\GenerateHighscoreRanks;
 use OGame\Console\Commands\Scheduler\GenerateHighscores;
 use OGame\Console\Commands\Scheduler\ResetDebrisFields;
+use OGame\Console\Commands\Scheduler\RespawnNPCBases;
+use OGame\Console\Commands\Scheduler\SpawnNPCBases;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,5 +36,11 @@ Schedule::command(CleanupWreckFields::class)->hourly()->withoutOverlapping();
 // Delete messages once they have aged out of the seven-day retention window
 Schedule::command(DeleteOldMessages::class)->hourly()->withoutOverlapping();
 
-// Process Dark Matter regeneration every 5 minutes
-Schedule::command(DarkMatterRegenerateCommand::class)->everyFiveMinutes()->withoutOverlapping();
+// Top up NPC bases per galaxy
+Schedule::command(SpawnNPCBases::class)->hourly()->withoutOverlapping();
+
+// Respawn cleared NPC bases whose timer has elapsed
+Schedule::command(RespawnNPCBases::class)->everyFifteenMinutes()->withoutOverlapping();
+
+// Escalate NPC base difficulty weekly on Monday at 2:00 AM
+Schedule::command(EscalateNpcBaseDifficulty::class)->weeklyOn(1, '2:00');

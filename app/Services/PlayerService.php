@@ -7,6 +7,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use OGame\Enums\OfficerType;
 use OGame\GameObjects\Models\Calculations\CalculationType;
 use OGame\Models\BuildingQueue;
 use OGame\Models\FleetMission;
@@ -178,6 +179,16 @@ class PlayerService
     }
 
     /**
+     * Checks if this player is a reserved NPC base owner account (e.g. "Pirates"/"Aliens").
+     *
+     * @return bool
+     */
+    public function isNpc(): bool
+    {
+        return $this->user->hasRole('npc');
+    }
+
+    /**
      * Checks if the player is currently banned.
      *
      * @return bool
@@ -194,6 +205,12 @@ class PlayerService
      */
     public function isInactive(): bool
     {
+        // NPC base owners ("Pirates"/"Aliens") never log in, but they're not
+        // abandoned accounts either -- don't show them as inactive.
+        if ($this->isNpc()) {
+            return false;
+        }
+
         $lastActivity = Date::createFromTimestamp((int)$this->user->time);
 
         // If the player has not logged in in the last 7 days, then they are considered inactive.
@@ -211,6 +228,11 @@ class PlayerService
      */
     public function isLongInactive(): bool
     {
+        // See isInactive() above for why NPC base owners are excluded.
+        if ($this->isNpc()) {
+            return false;
+        }
+
         $lastActivity = Date::createFromTimestamp((int)$this->user->time);
 
         // If the player has not logged in in the last 28 days, then they are considered long inactive.
@@ -559,7 +581,11 @@ class PlayerService
         $user = $this->getUser();
         $fleet_slots_bonus = $characterClassService->getAdditionalFleetSlots($user);
 
-        return $fleet_slots_from_research + $fleet_slots_bonus;
+        // Add Admiral officer bonus (+2 fleet slots)
+        $officerService = app(OfficerService::class);
+        $officer_fleet_slots_bonus = $officerService->getFleetSlotsBonus($user);
+
+        return $fleet_slots_from_research + $fleet_slots_bonus + $officer_fleet_slots_bonus;
     }
 
     /**
@@ -604,7 +630,11 @@ class PlayerService
         $user = $this->getUser();
         $expedition_slots_bonus = $characterClassService->getExpeditionSlotsBonus($user);
 
-        return $expedition_slots_from_research + $bonus_slots + $expedition_slots_bonus;
+        // Add Admiral officer bonus (+1 expedition slot)
+        $officerService = app(OfficerService::class);
+        $officer_expedition_slots_bonus = $officerService->getExpeditionSlotsBonus($user);
+
+        return $expedition_slots_from_research + $bonus_slots + $expedition_slots_bonus + $officer_expedition_slots_bonus;
     }
 
     /**
@@ -634,7 +664,17 @@ class PlayerService
                 $this->updateResearchQueue(false);
 
                 // ------
-                // 2. Update last_ip and time properties.
+                // 2. Update lifeform research queue
+                // ------
+                $this->updateLifeformResearchQueue(false);
+
+                // ------
+                // 3. Update lifeform exploration missions
+                // ------
+                $this->updateLifeformExplorations(false);
+
+                // ------
+                // 4. Update last_ip and time properties.
                 // ------
                 $this->user->time = (string)Date::now()->timestamp;
                 $this->user->last_ip = request()->ip();
@@ -682,6 +722,67 @@ class PlayerService
             // Build the next item in queue (if there is any)
             $queue->start($this, $item->time_end);
         }
+
+        if ($save_user) {
+            $this->user->save();
+        }
+    }
+
+    /**
+     * Update the lifeform research queue for this player. Mirrors updateResearchQueue()
+     * above but against the separate lifeform_research queue (ideas/lifeforms.md 2.3),
+     * where levels are stored per-user-per-species instead of flat user_tech columns.
+     *
+     * @param bool $save_user
+     *   Optional flag whether to save the user in this method. This defaults to TRUE
+     *   but can be set to FALSE when update happens in bulk and the caller method calls
+     *   the save user itself to prevent on unnecessary multiple updates.
+     *
+     * @return void
+     * @throws Exception
+     */
+    public function updateLifeformResearchQueue(bool $save_user = true): void
+    {
+        if ($this->isInVacationMode()) {
+            return;
+        }
+
+        $queue = resolve(LifeformResearchQueueService::class);
+        $lifeformService = resolve(LifeformService::class);
+        $research_queue = $queue->retrieveFinishedForUser($this);
+
+        foreach ($research_queue as $item) {
+            $lifeformService->setResearchLevel($this, $item->lifeform, $item->object_machine_name, $item->object_level_target);
+
+            $item->processed = 1;
+            $item->save();
+
+            $queue->start($this, $item->time_end);
+        }
+
+        if ($save_user) {
+            $this->user->save();
+        }
+    }
+
+    /**
+     * Update the lifeform exploration missions for this player, resolving any that
+     * are due (Phase 4a, ideas/lifeforms.md 1.5).
+     *
+     * @param bool $save_user
+     *   Optional flag whether to save the user in this method. This defaults to TRUE
+     *   but can be set to FALSE when update happens in bulk and the caller method calls
+     *   the save user itself to prevent on unnecessary multiple updates.
+     *
+     * @return void
+     */
+    public function updateLifeformExplorations(bool $save_user = true): void
+    {
+        if ($this->isInVacationMode()) {
+            return;
+        }
+
+        resolve(LifeformExplorationService::class)->processFinishedExplorations($this);
 
         if ($save_user) {
             $this->user->save();
@@ -943,32 +1044,27 @@ class PlayerService
 
     public function hasCommander(): bool
     {
-        // TODO: add logic
-        return false;
+        return app(OfficerService::class)->isActive($this->user, OfficerType::COMMANDER);
     }
 
     public function hasAdmiral(): bool
     {
-        // TODO: add logic
-        return false;
+        return app(OfficerService::class)->isActive($this->user, OfficerType::ADMIRAL);
     }
 
     public function hasEngineer(): bool
     {
-        // TODO: add logic
-        return false;
+        return app(OfficerService::class)->isActive($this->user, OfficerType::ENGINEER);
     }
 
     public function hasGeologist(): bool
     {
-        // TODO: add logic
-        return false;
+        return app(OfficerService::class)->isActive($this->user, OfficerType::GEOLOGIST);
     }
 
     public function hasTechnocrat(): bool
     {
-        // TODO: add logic
-        return false;
+        return app(OfficerService::class)->isActive($this->user, OfficerType::TECHNOCRAT);
     }
 
     public function hasCommandingStaff(): bool
@@ -982,7 +1078,7 @@ class PlayerService
 
     public function getDarkMatter(): int
     {
-        return $this->user->dark_matter ?? 0;
+        return resolve(DarkMatterService::class)->getBalance($this->user);
     }
 
     /**

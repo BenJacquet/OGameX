@@ -14,6 +14,7 @@ use OGame\GameMissions\BattleEngine\Services\LootService;
 use OGame\GameObjects\Models\Enums\GameObjectType;
 use OGame\GameObjects\Models\Units\UnitCollection;
 use OGame\Models\Resources;
+use OGame\Services\AllianceClassService;
 use OGame\Services\CharacterClassService;
 use OGame\Services\ObjectService;
 use OGame\Services\PlanetService;
@@ -118,6 +119,11 @@ abstract class BattleEngine
         $characterClassService = app(CharacterClassService::class);
         $attackerCombatBonus = $characterClassService->getAdditionalCombatResearchLevels($attackerPlayer->getUser());
         $defenderCombatBonus = $characterClassService->getAdditionalCombatResearchLevels($defenderPlayer->getUser());
+
+        // Apply Warrior alliance class combat research bonus (+1 level)
+        $allianceClassService = app(AllianceClassService::class);
+        $attackerCombatBonus += $allianceClassService->getAdditionalCombatResearchLevels($attackerPlayer->getUser());
+        $defenderCombatBonus += $allianceClassService->getAdditionalCombatResearchLevels($defenderPlayer->getUser());
 
         $result->attackerWeaponLevel = $attackerWeaponBase + $attackerCombatBonus;
         $result->attackerShieldLevel = $attackerShieldBase + $attackerCombatBonus;

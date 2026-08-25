@@ -261,9 +261,15 @@
                     <span class="galaxy_icons next ipiHintable" onclick="submitOnKey('ArrowRight');" data-ipi-hint="ipiGalaxySwitchGalaxy"></span>
                     <div class="btn_blue" onclick="submitForm();">{{ __('t_ingame.galaxy.go') }}</div>
                     <div class="systembuttons">
-                        <a class="btn_blue tooltip phalanxlink btn_system_action" href="javascript:void(0);" title="{{ __('t_ingame.galaxy.system_phalanx') }}" disabled="disabled">
-                            <img alt="" src="/img/icons/1cae570e41fc188133be9d548d6523.gif" class="icon_allianceBonus" style="filter:grayscale(1);"> {{ __('t_ingame.galaxy.system_phalanx') }}
-                        </a>
+                        @if($canScanSystemPhalanx ?? false)
+                            <a class="btn_blue tooltip phalanxlink btn_system_action" href="javascript:void(0);" title="{{ __('t_ingame.galaxy.system_phalanx') }}" onclick="scanSystemWithPhalanx();">
+                                <img alt="" src="/img/icons/1cae570e41fc188133be9d548d6523.gif" class="icon_allianceBonus"> {{ __('t_ingame.galaxy.system_phalanx') }}
+                            </a>
+                        @else
+                            <a class="btn_blue tooltip phalanxlink btn_system_action" href="javascript:void(0);" title="{{ __('t_ingame.galaxy.system_phalanx') }}" disabled="disabled">
+                                <img alt="" src="/img/icons/1cae570e41fc188133be9d548d6523.gif" class="icon_allianceBonus" style="filter:grayscale(1);"> {{ __('t_ingame.galaxy.system_phalanx') }}
+                            </a>
+                        @endif
                         <a class="btn_blue tooltip spysystemlink btn_system_action" disabled="disabled" title="{{ __('t_ingame.galaxy.system_espionage') }}">
                             <img alt="" src="/img/icons/1cae570e41fc188133be9d548d6523.gif" class="icon_allianceBonus" style="filter:grayscale(1);"> {{ __('t_ingame.galaxy.system_espionage') }}
                         </a>
@@ -601,10 +607,13 @@
 
             function showPhalanxResults(data) {
                 // Build OGame-style phalanx dialog
-                var coords = data.target.galaxy + ':' + data.target.system + ':' + data.target.position;
+                var isSystemScan = typeof data.target.position === 'undefined';
+                var coords = isSystemScan
+                    ? (data.target.galaxy + ':' + data.target.system)
+                    : (data.target.galaxy + ':' + data.target.system + ':' + data.target.position);
                 var dialog_title = coords + ' {{ __('t_ingame.galaxy.sensor_report') }}';
 
-                if (data.target.planet_name && data.target.player_name) {
+                if (!isSystemScan && data.target.planet_name && data.target.player_name) {
                     dialog_title = data.target.planet_name + ' ' + coords + ' (' + data.target.player_name + ') {{ __('t_ingame.galaxy.sensor_report') }}';
                 }
 
@@ -619,8 +628,11 @@
                 modal_html += '<span id="phalanx-title" class="ui-dialog-title">' + dialog_title;
 
                 // Refresh button inside title
+                var refreshCall = isSystemScan
+                    ? 'refreshSystemPhalanxContent(' + data.target.galaxy + ',' + data.target.system + ')'
+                    : 'refreshPhalanxContent(' + data.target.galaxy + ',' + data.target.system + ',' + data.target.position + ')';
                 modal_html += '<a class="refreshPhalanxLink tooltip js_hideTipOnMobile fleft" ';
-                modal_html += 'href="javascript:void(0)" onclick="refreshPhalanxContent(' + data.target.galaxy + ',' + data.target.system + ',' + data.target.position + ')" ';
+                modal_html += 'href="javascript:void(0)" onclick="' + refreshCall + '" ';
                 modal_html += 'data-tooltip-title="{{ __('t_ingame.galaxy.refresh') }}">';
                 modal_html += '<span class="icon icon_reload"></span>';
                 modal_html += '</a>';
@@ -706,6 +718,64 @@
                         galaxy: galaxy,
                         system: system,
                         position: position
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            updateDeuteriumAfterScan(response.scan_cost);
+                            updatePhalanxContent(response);
+                        } else {
+                            alert('Phalanx refresh failed: ' + (response.error || 'Unknown error'));
+                        }
+                    },
+                    error: function(xhr) {
+                        var error_message = 'Phalanx refresh failed';
+                        if (xhr.responseJSON && xhr.responseJSON.error) {
+                            error_message = xhr.responseJSON.error;
+                        }
+                        alert(error_message);
+                    }
+                });
+            }
+
+            // System-wide phalanx scan (Researcher alliance class bonus)
+            function scanSystemWithPhalanx() {
+                var galaxy = $('#galaxy_input').val();
+                var system = $('#system_input').val();
+
+                $.ajax({
+                    url: '{{ route('phalanx.scan-system') }}',
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        galaxy: galaxy,
+                        system: system
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            updateDeuteriumAfterScan(response.scan_cost);
+                            showPhalanxResults(response);
+                        } else {
+                            alert('Phalanx scan failed: ' + (response.error || 'Unknown error'));
+                        }
+                    },
+                    error: function(xhr) {
+                        var error_message = 'Phalanx scan failed';
+                        if (xhr.responseJSON && xhr.responseJSON.error) {
+                            error_message = xhr.responseJSON.error;
+                        }
+                        alert(error_message);
+                    }
+                });
+            }
+
+            function refreshSystemPhalanxContent(galaxy, system) {
+                $.ajax({
+                    url: '{{ route('phalanx.scan-system') }}',
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        galaxy: galaxy,
+                        system: system
                     },
                     success: function(response) {
                         if (response.success) {

@@ -15,6 +15,16 @@ use OGame\Services\PlayerService;
 class MerchantController extends OGameController
 {
     /**
+     * MerchantController constructor.
+     *
+     * @param DarkMatterService $darkMatterService
+     */
+    public function __construct(
+        private DarkMatterService $darkMatterService
+    ) {
+    }
+
+    /**
      * Shows the merchant index page
      *
      * @param PlayerService $player
@@ -24,7 +34,7 @@ class MerchantController extends OGameController
     {
         $this->setBodyId('traderOverview');
 
-        $darkMatter = $player->getUser()->dark_matter;
+        $darkMatter = $this->darkMatterService->getBalance($player->getUser());
         $merchantCost = MerchantService::DARK_MATTER_COST;
 
         return view('ingame.merchant.index', [
@@ -44,7 +54,7 @@ class MerchantController extends OGameController
     {
         $this->setBodyId('traderOverview');
 
-        $darkMatter = $player->getUser()->dark_matter;
+        $darkMatter = $this->darkMatterService->getBalance($player->getUser());
         $merchantCost = MerchantService::DARK_MATTER_COST;
 
         // Check if a merchant is already active for this user (check cache for persistence)
@@ -326,7 +336,7 @@ class MerchantController extends OGameController
             'offerPercentage' => $scrapSession['offer_percentage'],
             'bargainCount' => $scrapSession['bargain_count'],
             'bargainCost' => $bargainCost,
-            'darkMatter' => $user->dark_matter,
+            'darkMatter' => $this->darkMatterService->getBalance($user),
             'ships' => $ships,
             'defense' => $defense,
             'storageCapacity' => $storageCapacity,
@@ -364,7 +374,7 @@ class MerchantController extends OGameController
         $bargainCost = 2000 + ($scrapSession['bargain_count'] * 2000);
 
         // Check dark matter
-        if ($user->dark_matter < $bargainCost) {
+        if (!$this->darkMatterService->canAfford($user, $bargainCost)) {
             return response()->json([
                 'success' => false,
                 'message' => __('t_merchant.error.scrap.insufficient_dark_matter'),
@@ -373,8 +383,7 @@ class MerchantController extends OGameController
 
         // Deduct dark matter
         try {
-            $darkMatterService = resolve(DarkMatterService::class);
-            $darkMatterService->debit($user, $bargainCost, 'scrap_bargain', 'Scrap merchant bargain');
+            $this->darkMatterService->debit($user, $bargainCost, 'scrap_bargain', 'Scrap merchant bargain');
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,

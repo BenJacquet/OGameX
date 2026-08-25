@@ -3,6 +3,7 @@
 namespace OGame\GameObjects\Models\Abstracts;
 
 use InvalidArgumentException;
+use OGame\Enums\Lifeform;
 use OGame\GameObjects\Models\Calculations\CalculationType;
 use OGame\GameObjects\Models\Enums\GameObjectType;
 use OGame\GameObjects\Models\Fields\GameObjectAssets;
@@ -75,6 +76,20 @@ abstract class GameObject
      * @var bool
      */
     public bool $consumesPlanetField = true;
+
+    /**
+     * The lifeform species this object belongs to. Null for classic (non-lifeform) objects.
+     *
+     * @var Lifeform|null
+     */
+    public Lifeform|null $lifeform = null;
+
+    /**
+     * The lifeform tier (1-3) this object belongs to. Null for classic (non-lifeform) objects.
+     *
+     * @var int|null
+     */
+    public int|null $tier = null;
 
     /**
      * Custom calculation formulas for this object. These formulas can be used to calculate custom values for the object.

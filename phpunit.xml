@@ -14,6 +14,7 @@
     <env name="SESSION_DRIVER" value="array"/>
     <env name="QUEUE_DRIVER" value="sync"/>
     <env name="BCRYPT_ROUNDS" value="4"/>
+    <env name="DB_DATABASE" value="laravel_testing"/>
   </php>
   <source>
     <include>

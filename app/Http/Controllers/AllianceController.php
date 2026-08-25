@@ -8,8 +8,11 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Log;
+use OGame\Enums\AllianceClass;
 use OGame\Models\AllianceRank;
+use OGame\Services\AllianceClassService;
 use OGame\Services\AllianceService;
+use OGame\Services\DarkMatterService;
 use OGame\Services\HighscoreService;
 use OGame\Services\PlayerService;
 
@@ -361,10 +364,12 @@ class AllianceController extends OGameController
      * AJAX endpoint to get the alliance classes tab
      *
      * @param AllianceService $allianceService
+     * @param AllianceClassService $allianceClassService
+     * @param DarkMatterService $darkMatterService
      * @param PlayerService $player
      * @return JsonResponse
      */
-    public function ajaxClasses(AllianceService $allianceService, PlayerService $player): JsonResponse
+    public function ajaxClasses(AllianceService $allianceService, AllianceClassService $allianceClassService, DarkMatterService $darkMatterService, PlayerService $player): JsonResponse
     {
         $userId = $player->getId();
         $userAllianceId = $player->getUser()->alliance_id;
@@ -385,6 +390,10 @@ class AllianceController extends OGameController
                 'alliance/alliance_classes' => view('ingame.alliance.classes')->with([
                     'alliance' => $alliance,
                     'member' => $member,
+                    'allianceClass' => $alliance !== null ? $allianceClassService->getAllianceClass($alliance) : null,
+                    'changeCost' => $allianceClassService->getChangeCost(),
+                    'darkMatter' => $darkMatterService->getBalance($player->getUser()),
+                    'canManageClasses' => $member !== null && $member->hasPermission(AllianceRank::PERMISSION_MANAGE_CLASSES),
                 ])->render(),
             ],
             'files' => [
@@ -635,10 +644,11 @@ class AllianceController extends OGameController
      *
      * @param Request $request
      * @param AllianceService $allianceService
+     * @param AllianceClassService $allianceClassService
      * @param PlayerService $player
      * @return JsonResponse|RedirectResponse
      */
-    public function action(Request $request, AllianceService $allianceService, PlayerService $player): JsonResponse|RedirectResponse
+    public function action(Request $request, AllianceService $allianceService, AllianceClassService $allianceClassService, PlayerService $player): JsonResponse|RedirectResponse
     {
         $action = $request->input('action');
         $userId = $player->getId();
@@ -799,6 +809,36 @@ class AllianceController extends OGameController
                     $allianceService->disbandAlliance($allianceId, $userId);
                     $message = __('t_ingame.alliance.msg_disbanded');
                     $redirectUrl = route('alliance.index');
+                    break;
+
+                case 'select_alliance_class':
+                    $allianceId = $player->getUser()->alliance_id;
+                    if ($allianceId === null) {
+                        throw new Exception(__('t_ingame.alliance.msg_not_in_alliance'));
+                    }
+                    $alliance = $allianceService->getAllianceById($allianceId);
+                    if ($alliance === null) {
+                        throw new Exception(__('t_ingame.alliance.msg_not_found'));
+                    }
+                    $class = AllianceClass::tryFrom((int)$request->input('alliance_class_id'));
+                    if ($class === null) {
+                        throw new Exception(__('t_ingame.alliance.msg_invalid_action'));
+                    }
+                    $allianceClassService->selectClass($player->getUser(), $alliance, $class);
+                    $message = __('t_ingame.alliance.msg_class_activated');
+                    break;
+
+                case 'deactivate_alliance_class':
+                    $allianceId = $player->getUser()->alliance_id;
+                    if ($allianceId === null) {
+                        throw new Exception(__('t_ingame.alliance.msg_not_in_alliance'));
+                    }
+                    $alliance = $allianceService->getAllianceById($allianceId);
+                    if ($alliance === null) {
+                        throw new Exception(__('t_ingame.alliance.msg_not_found'));
+                    }
+                    $allianceClassService->deselectClass($player->getUser(), $alliance);
+                    $message = __('t_ingame.alliance.msg_class_deactivated');
                     break;
 
                 case 'send_broadcast':
